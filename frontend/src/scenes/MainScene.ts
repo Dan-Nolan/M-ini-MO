@@ -35,13 +35,26 @@ export class MainScene extends Phaser.Scene {
 
   constructor() {
     super({ key: "MainScene" });
-    this.socket = io("http://localhost:3000");
     this.playerId = localStorage.getItem("playerId") || this.generateUUID();
     localStorage.setItem("playerId", this.playerId);
+
+    // Initialize the socket without auto-connecting
+    this.socket = io("http://localhost:3000", {
+      autoConnect: false,
+    });
+
+    // Setup all socket event listeners
+    this.setupSocketEvents();
+
+    // Manually connect after setting up listeners
+    this.socket.connect();
   }
 
   preload() {
-    // Load assets if any
+    this.load.spritesheet("warrior", "assets/images/Warrior_Blue.png", {
+      frameWidth: 1152 / 6, // 192 pixels
+      frameHeight: 1536 / 8, // 192 pixels
+    });
   }
 
   create() {
@@ -68,31 +81,55 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    this.setupSocketEvents();
+    // Removed setupSocketEvents() from here since it's already called in the constructor
+
+    this.setupPlayersAndEnemies();
   }
 
   update(_time: number, _delta: number) {
-    if (!this.player) return;
+    if (this.player) {
+      let direction = this.player.currentDirection;
+      let action = "idle";
 
-    if (this.cursors) {
-      this.currentInputs.left = this.cursors.left.isDown;
-      this.currentInputs.right = this.cursors.right.isDown;
-      this.currentInputs.up = this.cursors.up.isDown;
-      this.currentInputs.down = this.cursors.down.isDown;
-    }
+      if (this.cursors) {
+        this.currentInputs.left = this.cursors.left.isDown;
+        this.currentInputs.right = this.cursors.right.isDown;
+        this.currentInputs.up = this.cursors.up.isDown;
+        this.currentInputs.down = this.cursors.down.isDown;
+      }
 
-    const anyTrue = Object.values(this.currentInputs).some(
-      (value) => value === true
-    );
-    if (anyTrue) {
-      this.socket.emit("playerInput", this.currentInputs);
+      const anyTrue = Object.values(this.currentInputs).some(
+        (value) => value === true
+      );
+
+      if (anyTrue) {
+        // Determine direction based on input
+        if (this.currentInputs.up) {
+          direction = "up";
+        } else if (this.currentInputs.down) {
+          direction = "down";
+        } else if (this.currentInputs.left) {
+          direction = "left";
+        } else if (this.currentInputs.right) {
+          direction = "right";
+        }
+
+        action = "walk";
+        this.player.playAnimation(action, direction);
+        this.socket.emit("playerInput", { ...this.currentInputs, direction });
+      } else {
+        action = "idle";
+        this.player.playAnimation(action, direction);
+      }
     }
 
     this.interpolateEnemyPositions();
   }
 
   private setupSocketEvents() {
+    // Attach the connect event listener
     this.socket.on("connect", () => {
+      console.log("Connected to server with ID:", this.socket.id);
       this.socket.emit("init", { playerId: this.playerId });
     });
 
@@ -103,13 +140,6 @@ export class MainScene extends Phaser.Scene {
         players: { [key: string]: PlayerData };
         enemies: { [key: string]: EnemyData };
       }) => {
-        if (
-          data.playerData.playerId &&
-          data.playerData.playerId !== this.playerId
-        ) {
-          this.playerId = data.playerData.playerId;
-          localStorage.setItem("playerId", this.playerId);
-        }
         this.updateGameState({ players: data.players, enemies: data.enemies });
       }
     );
@@ -155,6 +185,25 @@ export class MainScene extends Phaser.Scene {
       this.chatWindow.appendChild(messageElement);
       this.chatWindow.scrollTop = this.chatWindow.scrollHeight;
     });
+
+    // Handle attack event if needed
+    this.socket.on("attack", (direction: string) => {
+      this.player.playAnimation("attack", direction);
+    });
+
+    // Optional: Handle disconnection
+    this.socket.on("disconnect", (reason) => {
+      console.warn("Disconnected from server:", reason);
+    });
+
+    // Optional: Handle reconnection attempts
+    this.socket.on("reconnect_attempt", (attemptNumber) => {
+      console.log(`Attempting to reconnect... (${attemptNumber})`);
+    });
+  }
+
+  private setupPlayersAndEnemies() {
+    // Initialization code for players and enemies
   }
 
   private createPlayer(playerData: PlayerData) {

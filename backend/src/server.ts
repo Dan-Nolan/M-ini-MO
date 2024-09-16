@@ -41,7 +41,7 @@ interface Player {
   level: number;
   exp: number;
   health: number;
-  socketId?: string;
+  socketId: string;
 }
 
 interface Enemy {
@@ -233,12 +233,22 @@ function processInputs() {
 
     if (input.attack) {
       handleAttack(playerId);
+      const direction = determineDirection(input);
+      io.to(player.socketId).emit("attack", direction);
     }
   }
   // Clear the latest inputs after processing
   for (const playerId in latestInputs) {
     delete latestInputs[playerId];
   }
+}
+
+function determineDirection(input: any): string {
+  if (input.up) return "up";
+  if (input.down) return "down";
+  if (input.left) return "left";
+  if (input.right) return "right";
+  return "right"; // Default direction
 }
 
 function updateGameState(deltaTime: number) {
