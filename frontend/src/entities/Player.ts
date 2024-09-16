@@ -6,6 +6,8 @@ interface PlayerData {
   position: { x: number; y: number };
   level: number;
   exp: number;
+  direction: string;
+  action: string;
 }
 
 export class Player {
@@ -21,6 +23,7 @@ export class Player {
   private isMoving: boolean = false;
   private isAttacking: boolean = false;
   public currentDirection: string = "right";
+  public currentAction: string = "idle";
 
   constructor(scene: Phaser.Scene, socket: Socket, playerData: PlayerData) {
     this.scene = scene;
@@ -32,9 +35,9 @@ export class Player {
     this.sprite = this.scene.add.sprite(
       playerData.position.x,
       playerData.position.y,
-      "warrior"
+      "player"
     );
-    this.sprite.setScale(0.2); // Adjust scale as needed
+    this.sprite.setScale(1); // Adjust scale as needed
     this.sprite.play(`idle_right`);
 
     this.label = this.scene.add
@@ -54,64 +57,140 @@ export class Player {
   }
 
   public static createAnimations(scene: Phaser.Scene) {
-    const directions = ["right", "left", "up", "down"];
+    // Define animation configurations based on the new spritesheet
+    // Each row has 6 frames except for attack and dying animations
 
-    directions.forEach((direction) => {
-      // Idle Animation
-      scene.anims.create({
-        key: `idle_${direction}`,
-        frames: scene.anims.generateFrameNumbers("warrior", {
-          start: Player.getFrameStart(direction, "idle"),
-          end: Player.getFrameEnd(direction, "idle"),
-        }),
-        frameRate: 6,
-        repeat: -1,
-      });
-
-      // Walk Animation
-      scene.anims.create({
-        key: `walk_${direction}`,
-        frames: scene.anims.generateFrameNumbers("warrior", {
-          start: Player.getFrameStart(direction, "walk"),
-          end: Player.getFrameEnd(direction, "walk"),
-        }),
-        frameRate: 6,
-        repeat: -1,
-      });
-
-      // Attack Animation
-      scene.anims.create({
-        key: `attack_${direction}`,
-        frames: scene.anims.generateFrameNumbers("warrior", {
-          start: Player.getFrameStart(direction, "attack1"),
-          end: Player.getFrameEnd(direction, "attack2"),
-        }),
-        frameRate: 12,
-        repeat: 0,
-        yoyo: false,
-      });
+    // Idle Animations
+    scene.anims.create({
+      key: "idle",
+      frames: scene.anims.generateFrameNumbers("player", { start: 0, end: 5 }),
+      frameRate: 6,
+      repeat: -1,
     });
-  }
 
-  private static getFrameStart(direction: string, action: string): number {
-    const rowMap: { [key: string]: number } = {
-      idle: 0,
-      walk: 1,
-      attack1_right: 2,
-      attack2_right: 3,
-      attack1_down: 4,
-      attack2_down: 5,
-      attack1_up: 6,
-      attack2_up: 7,
-    };
-    if (action.startsWith("attack")) {
-      return rowMap[`${action}_${direction}`] * 6;
-    }
-    return rowMap[action] * 6;
-  }
+    scene.anims.create({
+      key: "idle_down",
+      frames: scene.anims.generateFrameNumbers("player", { start: 0, end: 5 }),
+      frameRate: 6,
+      repeat: -1,
+    });
 
-  private static getFrameEnd(direction: string, action: string): number {
-    return Player.getFrameStart(direction, action) + 5;
+    scene.anims.create({
+      key: "idle_right",
+      frames: scene.anims.generateFrameNumbers("player", { start: 6, end: 11 }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    scene.anims.create({
+      key: "idle_left",
+      frames: scene.anims.generateFrameNumbers("player", { start: 6, end: 11 }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    scene.anims.create({
+      key: "idle_up",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 12,
+        end: 17,
+      }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    // Walking Animations
+    scene.anims.create({
+      key: "walk_down",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 18,
+        end: 23,
+      }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    scene.anims.create({
+      key: "walk_right",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 24,
+        end: 29,
+      }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    scene.anims.create({
+      key: "walk_left",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 24,
+        end: 29,
+      }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    scene.anims.create({
+      key: "walk_up",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 30,
+        end: 35,
+      }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    // Attack Animations
+    scene.anims.create({
+      key: "attack_down",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 36,
+        end: 39,
+      }),
+      frameRate: 12,
+      repeat: 0,
+    });
+
+    scene.anims.create({
+      key: "attack_left",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 42,
+        end: 45,
+      }),
+      frameRate: 12,
+      repeat: 0,
+    });
+
+    scene.anims.create({
+      key: "attack_right",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 42,
+        end: 45,
+      }),
+      frameRate: 12,
+      repeat: 0,
+    });
+
+    scene.anims.create({
+      key: "attack_up",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 48,
+        end: 51,
+      }),
+      frameRate: 12,
+      repeat: 0,
+    });
+
+    // Dying Animation
+    scene.anims.create({
+      key: "die",
+      frames: scene.anims.generateFrameNumbers("player", {
+        start: 54,
+        end: 56,
+      }),
+      frameRate: 6,
+      repeat: 0,
+    });
   }
 
   getExp() {
@@ -134,24 +213,49 @@ export class Player {
     this.levelText.setText(`Level: ${level}`);
   }
 
-  playAnimation(action: string, direction: string) {
+  updateDirection(direction: string) {
+    if (direction) {
+      this.currentDirection = direction;
+    }
+  }
+
+  updateAction(action: string) {
+    this.currentAction = action;
+  }
+
+  playAnimation(action: string, direction: string = this.currentDirection) {
     if (this.isAttacking) return; // Prevent interruptions during attack
 
     if (this.currentDirection !== direction) {
       this.currentDirection = direction;
-      this.sprite.setFlipX(direction === "left");
+      if (direction === "left") {
+        this.sprite.setFlipX(true);
+      } else {
+        this.sprite.setFlipX(false);
+      }
     }
 
+    let animationKey = "";
+
     if (action === "idle") {
-      this.sprite.play(`idle_${direction}`, true);
+      animationKey = `idle_${direction}`;
       this.isMoving = false;
     } else if (action === "walk") {
-      this.sprite.play(`walk_${direction}`, true);
+      animationKey = `walk_${direction}`;
       this.isMoving = true;
     } else if (action === "attack") {
+      animationKey = `attack_${direction}`;
       this.isAttacking = true;
-      this.sprite.play(`attack_${direction}`, true);
-      this.sprite.on(
+    } else if (action === "die") {
+      animationKey = "die";
+    }
+
+    if (animationKey) {
+      this.sprite.play(animationKey, true);
+    }
+
+    if (action === "attack") {
+      this.sprite.once(
         "animationcomplete",
         () => {
           this.isAttacking = false;

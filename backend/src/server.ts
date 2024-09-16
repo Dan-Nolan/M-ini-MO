@@ -42,6 +42,8 @@ interface Player {
   exp: number;
   health: number;
   socketId: string;
+  direction: string;
+  action: string;
 }
 
 interface Enemy {
@@ -140,6 +142,8 @@ io.on("connection", (socket: Socket) => {
         exp: 0,
         health: 100,
         socketId: socket.id,
+        direction: "right",
+        action: "idle",
       };
       await db.collection("players").insertOne(playerData);
     } else {
@@ -230,25 +234,17 @@ function processInputs() {
 
     player.position.x = Math.max(0, Math.min(800, player.position.x));
     player.position.y = Math.max(0, Math.min(600, player.position.y));
+    player.direction = input.direction;
+    player.action = input.action;
 
     if (input.attack) {
       handleAttack(playerId);
-      const direction = determineDirection(input);
-      io.to(player.socketId).emit("attack", direction);
     }
   }
   // Clear the latest inputs after processing
   for (const playerId in latestInputs) {
     delete latestInputs[playerId];
   }
-}
-
-function determineDirection(input: any): string {
-  if (input.up) return "up";
-  if (input.down) return "down";
-  if (input.left) return "left";
-  if (input.right) return "right";
-  return "right"; // Default direction
 }
 
 function updateGameState(deltaTime: number) {
@@ -306,6 +302,8 @@ function getGameState() {
       position: { x: number; y: number };
       level: number;
       exp: number;
+      direction: string;
+      action: string;
     };
   } = {};
   for (const playerId in players) {
@@ -315,6 +313,8 @@ function getGameState() {
       position: player.position,
       level: player.level,
       exp: player.exp,
+      direction: player.direction,
+      action: player.action,
     };
   }
 

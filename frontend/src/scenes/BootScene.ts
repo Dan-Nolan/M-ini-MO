@@ -7,9 +7,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.spritesheet("warrior", "assets/images/Warrior_Blue.png", {
-      frameWidth: 1152 / 6,
-      frameHeight: 1536 / 8,
+    this.load.spritesheet("player", "assets/images/player.png", {
+      frameWidth: 48, // Updated frame width
+      frameHeight: 48, // Updated frame height
     });
     // Load other assets here
   }

@@ -7,6 +7,8 @@ interface PlayerData {
   position: { x: number; y: number };
   level: number;
   exp: number;
+  direction: string;
+  action: string;
 }
 
 interface EnemyData {
@@ -50,12 +52,7 @@ export class MainScene extends Phaser.Scene {
     this.socket.connect();
   }
 
-  preload() {
-    this.load.spritesheet("warrior", "assets/images/Warrior_Blue.png", {
-      frameWidth: 1152 / 6, // 192 pixels
-      frameHeight: 1536 / 8, // 192 pixels
-    });
-  }
+  preload() {}
 
   create() {
     this.chatWindow = document.getElementById("chat-window") as HTMLDivElement;
@@ -63,12 +60,6 @@ export class MainScene extends Phaser.Scene {
 
     if (this.input.keyboard) {
       this.cursors = this.input.keyboard.createCursorKeys();
-      this.input.keyboard.on("keydown-SPACE", () => {
-        this.currentInputs.attack = true;
-      });
-      this.input.keyboard.on("keyup-SPACE", () => {
-        this.currentInputs.attack = false;
-      });
     }
 
     this.chatInput.addEventListener("keyup", (event: KeyboardEvent) => {
@@ -80,29 +71,32 @@ export class MainScene extends Phaser.Scene {
         }
       }
     });
-
-    // Removed setupSocketEvents() from here since it's already called in the constructor
-
-    this.setupPlayersAndEnemies();
   }
 
   update(_time: number, _delta: number) {
     if (this.player) {
       let direction = this.player.currentDirection;
-      let action = "idle";
-
       if (this.cursors) {
         this.currentInputs.left = this.cursors.left.isDown;
         this.currentInputs.right = this.cursors.right.isDown;
         this.currentInputs.up = this.cursors.up.isDown;
         this.currentInputs.down = this.cursors.down.isDown;
       }
-
-      const anyTrue = Object.values(this.currentInputs).some(
+      const isAttacking = this.input.keyboard?.checkDown(
+        this.cursors.space,
+        250
+      );
+      const isWalking = Object.values(this.currentInputs).some(
         (value) => value === true
       );
 
-      if (anyTrue) {
+      if (isAttacking) {
+        this.socket.emit("playerInput", {
+          ...this.currentInputs,
+          direction,
+          action: "attack",
+        });
+      } else if (isWalking) {
         // Determine direction based on input
         if (this.currentInputs.up) {
           direction = "up";
@@ -114,12 +108,17 @@ export class MainScene extends Phaser.Scene {
           direction = "right";
         }
 
-        action = "walk";
-        this.player.playAnimation(action, direction);
-        this.socket.emit("playerInput", { ...this.currentInputs, direction });
+        this.socket.emit("playerInput", {
+          ...this.currentInputs,
+          direction,
+          action: "walk",
+        });
       } else {
-        action = "idle";
-        this.player.playAnimation(action, direction);
+        this.socket.emit("playerInput", {
+          ...this.currentInputs,
+          direction,
+          action: "idle",
+        });
       }
     }
 
@@ -186,24 +185,13 @@ export class MainScene extends Phaser.Scene {
       this.chatWindow.scrollTop = this.chatWindow.scrollHeight;
     });
 
-    // Handle attack event if needed
-    this.socket.on("attack", (direction: string) => {
-      this.player.playAnimation("attack", direction);
-    });
-
-    // Optional: Handle disconnection
     this.socket.on("disconnect", (reason) => {
       console.warn("Disconnected from server:", reason);
     });
 
-    // Optional: Handle reconnection attempts
     this.socket.on("reconnect_attempt", (attemptNumber) => {
       console.log(`Attempting to reconnect... (${attemptNumber})`);
     });
-  }
-
-  private setupPlayersAndEnemies() {
-    // Initialization code for players and enemies
   }
 
   private createPlayer(playerData: PlayerData) {
@@ -257,6 +245,9 @@ export class MainScene extends Phaser.Scene {
       const serverPlayer = state.players[id];
       if (this.players[id]) {
         this.players[id].updatePosition(serverPlayer.position);
+        this.players[id].updateDirection(serverPlayer.direction);
+        this.players[id].updateAction(serverPlayer.action);
+        this.players[id].playAnimation(serverPlayer.action);
         if (id === this.playerId) {
           this.players[id].updateExpBar(serverPlayer.exp, serverPlayer.level);
         }
