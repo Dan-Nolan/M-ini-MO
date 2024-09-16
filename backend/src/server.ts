@@ -57,9 +57,6 @@ interface Enemy {
 const players: { [key: string]: Player } = {};
 const enemies: { [key: string]: Enemy } = {};
 
-// Input queue
-const inputQueue: { playerId: string; input: any }[] = [];
-
 // Mappings between socket IDs and player IDs
 const socketIdToPlayerId: { [key: string]: string } = {};
 const playerIdToSocketId: { [key: string]: string } = {};
