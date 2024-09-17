@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { Player } from "./Player";
+import { players } from "../server";
 
 export interface EnemyData {
   id: string;
@@ -9,6 +10,8 @@ export interface EnemyData {
   action: string;
 }
 
+type ActionType = "hop" | "longJump" | "idle" | "die";
+
 export class Enemy {
   id: string;
   position: { x: number; y: number };
@@ -16,8 +19,26 @@ export class Enemy {
   alive: boolean;
   velocity: { x: number; y: number };
   direction: string;
-  action: string;
+  action: ActionType;
   targetPlayerId: string | null = null;
+  lastMovement: ActionType | null = null;
+
+  // New properties for managing action cycles
+  private actionCycle: ActionType[] = [
+    "hop",
+    "idle",
+    "longJump",
+    "idle",
+    "idle",
+  ];
+  private currentActionIndex: number = 0;
+  private actionTimer: number = 0; // in milliseconds
+
+  // Configuration for movement distances and pause durations
+  private readonly HOP_DISTANCE = 10;
+  private readonly LONG_JUMP_DISTANCE = 60;
+  private readonly PAUSE_DURATION = 1000;
+  private readonly MOVE_DURATION = 1000;
 
   constructor() {
     this.id = uuidv4();
@@ -30,20 +51,26 @@ export class Enemy {
   }
 
   move(deltaTime: number) {
-    if (!this.alive || this.action === "idle") return;
+    if (!this.alive) return;
 
+    // Update position based on current velocity
     const deltaSeconds = deltaTime / 1000;
-
     this.position.x += this.velocity.x * deltaSeconds;
     this.position.y += this.velocity.y * deltaSeconds;
 
-    // Handle boundary collisions
-    if (this.position.x < 0 || this.position.x > 800) this.velocity.x *= -1;
-    if (this.position.y < 0 || this.position.y > 600) this.velocity.y *= -1;
-
-    // Clamp position
+    // Clamp position within boundaries
     this.position.x = Math.max(0, Math.min(800, this.position.x));
     this.position.y = Math.max(0, Math.min(600, this.position.y));
+
+    // Update action timer
+    this.actionTimer -= deltaTime;
+
+    if (this.actionTimer <= 0) {
+      this.currentActionIndex =
+        (this.currentActionIndex + 1) % this.actionCycle.length;
+      const nextAction = this.actionCycle[this.currentActionIndex];
+      this.executeAction(nextAction);
+    }
   }
 
   takeDamage(amount: number): boolean {
@@ -51,18 +78,21 @@ export class Enemy {
     if (this.health <= 0) {
       this.alive = false;
       this.action = "die";
+      this.velocity = { x: 0, y: 0 };
       return true; // Indicates the enemy is dead
     }
     return false;
   }
 
-  // New Methods for Behavior
+  /**
+   * Finds the closest target player within detection radius.
+   */
   findTarget(players: { [key: string]: Player }): void {
     if (this.targetPlayerId && players[this.targetPlayerId]?.isAlive) return;
 
     let closestPlayerId: string | null = null;
     let minDistance = Infinity;
-    const detectionRadius = 200;
+    const detectionRadius = 50;
 
     for (const playerId in players) {
       const player = players[playerId];
@@ -75,77 +105,91 @@ export class Enemy {
 
     if (closestPlayerId) {
       this.targetPlayerId = closestPlayerId;
-      this.action = "chase";
-      this.direction = this.getDirectionTowards(
-        players[this.targetPlayerId].position
-      );
-      this.setVelocity();
+      this.currentActionIndex = -1; // Start cycle from the first action
+      this.executeNextAction();
     }
   }
 
+  /**
+   * Executes the next action in the cycle.
+   */
   performAction(players: { [key: string]: Player }): void {
-    if (this.action === "chase" && this.targetPlayerId) {
-      const target = players[this.targetPlayerId];
-      if (!target || !target.isAlive) {
-        this.targetPlayerId = null;
-        this.action = "idle";
-        this.velocity = { x: 0, y: 0 };
-        return;
-      }
+    if (!this.targetPlayerId) return;
 
-      const distance = this.getDistance(this.position, target.position);
-      if (distance > 150) {
-        // Long Jump
-        this.action = "hop";
-        setTimeout(() => {
-          this.action = "longJump";
-          this.direction = this.getDirectionTowards(target.position);
-          this.setVelocity();
-        }, 500); // Short hop before long jump
-      } else {
-        // Regular Chase
-        this.direction = this.getDirectionTowards(target.position);
-        this.setVelocity();
-      }
-    }
-  }
-
-  private setVelocity() {
-    if (!this.alive) {
+    const target = players[this.targetPlayerId];
+    if (!target || !target.isAlive) {
+      this.targetPlayerId = null;
+      this.action = "idle";
       this.velocity = { x: 0, y: 0 };
       return;
     }
-
-    const speed = this.action === "longJump" ? 150 : 50;
-    const angle = this.getAngleFromDirection(this.direction);
-    this.velocity.x = Math.cos(angle) * speed;
-    this.velocity.y = Math.sin(angle) * speed;
   }
 
-  private getAngleFromDirection(direction: string): number {
-    switch (direction) {
-      case "left":
-        return Math.PI;
-      case "right":
-        return 0;
-      case "up":
-        return -Math.PI / 2;
-      case "down":
-        return Math.PI / 2;
+  /**
+   * Executes a specific action based on the action type.
+   */
+  private executeAction(action: ActionType) {
+    switch (action) {
+      case "hop":
+        this.setMovement("hop");
+        break;
+      case "longJump":
+        this.setMovement("longJump");
+        break;
       case "idle":
+        this.velocity = { x: 0, y: 0 };
+        this.action = "idle";
+        this.actionTimer = this.PAUSE_DURATION;
+        break;
       default:
-        return 0;
+        this.velocity = { x: 0, y: 0 };
+        this.action = "idle";
+        break;
     }
   }
 
-  private getDirectionTowards(targetPos: { x: number; y: number }): string {
+  /**
+   * Executes the next action in the cycle.
+   */
+  private executeNextAction() {
+    this.currentActionIndex =
+      (this.currentActionIndex + 1) % this.actionCycle.length;
+    const nextAction = this.actionCycle[this.currentActionIndex];
+    this.executeAction(nextAction);
+  }
+
+  /**
+   * Sets the velocity based on the movement type towards the target position.
+   */
+  private setMovement(movementType: "hop" | "longJump") {
+    if (!this.targetPlayerId) return;
+
+    const target = players[this.targetPlayerId];
+    if (!target) return;
+
+    const targetPos = target.position;
     const dx = targetPos.x - this.position.x;
     const dy = targetPos.y - this.position.y;
+    const angle = Math.atan2(dy, dx);
+
+    // Determine direction based on angle
     if (Math.abs(dx) > Math.abs(dy)) {
-      return dx > 0 ? "right" : "left";
+      this.direction = dx > 0 ? "right" : "left";
     } else {
-      return dy > 0 ? "down" : "up";
+      this.direction = dy > 0 ? "down" : "up";
     }
+
+    // Set distance based on movement type
+    const distance =
+      movementType === "hop" ? this.HOP_DISTANCE : this.LONG_JUMP_DISTANCE;
+    const speed = distance / (this.MOVE_DURATION / 1000); // distance per second
+
+    this.velocity.x = Math.cos(angle) * speed;
+    this.velocity.y = Math.sin(angle) * speed;
+
+    // Set timer for movement duration
+    this.actionTimer = this.MOVE_DURATION;
+    this.action = movementType;
   }
 
   private getDistance(

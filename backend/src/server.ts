@@ -37,7 +37,7 @@ const TICK_INTERVAL = 1000 / TICK_RATE;
 const MAX_ENEMIES = 5;
 
 // Game state
-const players: { [key: string]: Player } = {};
+export const players: { [key: string]: Player } = {};
 const enemies: { [key: string]: Enemy } = {};
 
 // Mappings between socket IDs and player IDs

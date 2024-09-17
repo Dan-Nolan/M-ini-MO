@@ -48,15 +48,19 @@ export class Enemy {
     const animConfig = [
       { key: "enemy_idle_down", start: 0, end: 3 },
       { key: "enemy_idle_right", start: 7, end: 10 },
+      { key: "enemy_idle_left", start: 7, end: 10 },
       { key: "enemy_idle_up", start: 14, end: 17 },
       { key: "enemy_hop_down", start: 21, end: 26 },
       { key: "enemy_hop_right", start: 28, end: 33 },
+      { key: "enemy_hop_left", start: 28, end: 33 },
       { key: "enemy_hop_up", start: 35, end: 40 },
       { key: "enemy_longJump_down", start: 42, end: 48 },
       { key: "enemy_longJump_right", start: 49, end: 55 },
+      { key: "enemy_longJump_left", start: 49, end: 55 },
       { key: "enemy_longJump_up", start: 56, end: 62 },
       { key: "enemy_confused_down", start: 63, end: 65 },
       { key: "enemy_confused_right", start: 70, end: 72 },
+      { key: "enemy_confused_left", start: 70, end: 72 },
       { key: "enemy_confused_up", start: 77, end: 80 },
       { key: "enemy_dying", start: 84, end: 88 },
     ];
@@ -101,6 +105,13 @@ export class Enemy {
 
   playAnimation(action: string, direction: string) {
     this.action = action;
+    if (direction !== this.direction) {
+      if (direction === "left") {
+        this.sprite.setFlipX(true);
+      } else {
+        this.sprite.setFlipX(false);
+      }
+    }
     this.direction = direction;
     const animKey = `enemy_${action}_${direction}`;
     if (this.sprite.anims.currentAnim?.key !== animKey) {

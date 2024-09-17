@@ -189,7 +189,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createPlayer(playerData: PlayerData) {
-    this.player = new Player(this, this.socket, playerData);
+    this.player = new Player(this, this.socket, playerData, true);
     this.players[this.playerId] = this.player;
   }
 

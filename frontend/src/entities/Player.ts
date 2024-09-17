@@ -24,13 +24,20 @@ export class Player {
   private isAttacking: boolean = false;
   public currentDirection: string = "right";
   public currentAction: string = "idle";
+  public isLocal: boolean = false;
 
-  constructor(scene: Phaser.Scene, socket: Socket, playerData: PlayerData) {
+  constructor(
+    scene: Phaser.Scene,
+    socket: Socket,
+    playerData: PlayerData,
+    isLocal: boolean = false
+  ) {
     this.scene = scene;
     this.socket = socket;
     this.playerId = playerData.playerId;
     this.exp = playerData.exp;
     this.level = playerData.level;
+    this.isLocal = isLocal;
 
     this.sprite = this.scene.add.sprite(
       playerData.position.x,
@@ -41,10 +48,15 @@ export class Player {
     this.sprite.play(`idle_right`);
 
     this.label = this.scene.add
-      .text(this.sprite.x, this.sprite.y - 50, `Player ${this.playerId}`, {
-        fontSize: "12px",
-        color: "#fff",
-      })
+      .text(
+        this.sprite.x,
+        this.sprite.y - 15,
+        `${this.playerId.slice(0, 6)}` + (isLocal ? " (you)" : ""),
+        {
+          fontSize: "12px",
+          color: "#fff",
+        }
+      )
       .setOrigin(0.5);
 
     this.levelText = this.scene.add.text(10, 10, `Level: ${this.level}`, {
@@ -201,7 +213,7 @@ export class Player {
     this.sprite.x = position.x;
     this.sprite.y = position.y;
     this.label.x = position.x;
-    this.label.y = position.y - 50;
+    this.label.y = position.y - 15;
   }
 
   updateExpBar(exp: number, level: number) {
