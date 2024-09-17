@@ -13,8 +13,16 @@ interface PlayerData {
 }
 
 interface EnemyData {
+  id: string;
   position: { x: number; y: number };
   health: number;
+  direction: string;
+  action: string;
+}
+
+interface GameState {
+  players: { [key: string]: PlayerData };
+  enemies: { [key: string]: EnemyData };
 }
 
 export class MainScene extends Phaser.Scene {
@@ -148,15 +156,9 @@ export class MainScene extends Phaser.Scene {
       }
     });
 
-    this.socket.on(
-      "gameState",
-      (state: {
-        players: { [key: string]: PlayerData };
-        enemies: { [key: string]: EnemyData };
-      }) => {
-        this.updateGameState(state);
-      }
-    );
+    this.socket.on("gameState", (state: GameState) => {
+      this.updateGameState(state);
+    });
 
     this.socket.on("levelUp", () => {
       const congratsText = this.add
@@ -197,19 +199,13 @@ export class MainScene extends Phaser.Scene {
     this.players[playerData.playerId] = otherPlayer;
   }
 
-  private createEnemy(enemyData: {
-    id: string;
-    position: { x: number; y: number };
-    health: number;
-  }) {
+  private createEnemy(enemyData: EnemyData) {
     const enemy = new Enemy(this, enemyData);
     this.enemies[enemyData.id] = enemy;
   }
 
-  private updateGameState(state: {
-    players: { [key: string]: PlayerData };
-    enemies: { [key: string]: EnemyData };
-  }) {
+  private updateGameState(state: GameState) {
+    // Update Players
     for (const id in state.players) {
       const serverPlayer = state.players[id];
       if (this.players[id]) {
@@ -236,13 +232,18 @@ export class MainScene extends Phaser.Scene {
       }
     }
 
+    // Update Enemies
     for (const id in state.enemies) {
       const serverEnemy = state.enemies[id];
       if (this.enemies[id]) {
         this.enemies[id].updatePosition(serverEnemy.position);
         this.enemies[id].updateHealth(serverEnemy.health);
+        this.enemies[id].playAnimation(
+          serverEnemy.action,
+          serverEnemy.direction
+        );
       } else {
-        this.createEnemy({ id, ...serverEnemy });
+        this.createEnemy(serverEnemy);
       }
     }
 

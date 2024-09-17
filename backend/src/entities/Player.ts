@@ -24,6 +24,7 @@ export class Player {
   socketId: string;
   direction: string;
   action: string;
+  isAlive: boolean = true;
 
   // Store the latest input from the client
   currentInput: Partial<{

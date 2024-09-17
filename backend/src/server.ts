@@ -106,6 +106,8 @@ io.on("connection", (socket: Socket) => {
           id: enemy.id,
           position: enemy.position,
           health: enemy.health,
+          direction: enemy.direction,
+          action: enemy.action,
         };
       }
     }
@@ -183,8 +185,11 @@ function updateGameState(deltaTime: number) {
     player.processInput(speed);
   }
 
+  // Update Enemies Behavior
   for (const enemy of Object.values(enemies)) {
     if (enemy.alive) {
+      enemy.findTarget(players);
+      enemy.performAction(players);
       enemy.move(deltaTime);
     }
   }
@@ -221,6 +226,7 @@ function handleAttack(playerId: string) {
         { playerId },
         { $set: { exp: player.exp, level: player.level } }
       );
+      delete enemies[closestEnemy.id];
     }
   }
 }
@@ -248,6 +254,8 @@ function getGameState() {
         id: enemy.id,
         position: enemy.position,
         health: enemy.health,
+        direction: enemy.direction,
+        action: enemy.action,
       };
     }
   }

@@ -4,6 +4,8 @@ interface EnemyData {
   id: string;
   position: { x: number; y: number };
   health: number;
+  direction: string;
+  action: string;
 }
 
 export class Enemy {
@@ -14,19 +16,23 @@ export class Enemy {
   public isAlive: boolean = true;
   private targetPosition: { x: number; y: number };
   public currentHealth: number;
+  public direction: string;
+  public action: string;
 
   constructor(scene: Phaser.Scene, enemyData: EnemyData) {
     this.scene = scene;
     this.maxHealth = enemyData.health;
     this.targetPosition = { ...enemyData.position };
     this.currentHealth = enemyData.health;
+    this.direction = enemyData.direction;
+    this.action = enemyData.action;
 
     this.sprite = this.scene.add.sprite(
       enemyData.position.x,
       enemyData.position.y,
       "slime"
     );
-    this.sprite.play("enemy_idle_down");
+    this.playAnimation(this.action, this.direction);
 
     this.healthBar = this.scene.add.rectangle(
       this.sprite.x,
@@ -91,6 +97,15 @@ export class Enemy {
     this.sprite.y = Phaser.Math.Linear(this.sprite.y, this.targetPosition.y, t);
     this.healthBar.x = this.sprite.x;
     this.healthBar.y = this.sprite.y - 30;
+  }
+
+  playAnimation(action: string, direction: string) {
+    this.action = action;
+    this.direction = direction;
+    const animKey = `enemy_${action}_${direction}`;
+    if (this.sprite.anims.currentAnim?.key !== animKey) {
+      this.sprite.play(animKey);
+    }
   }
 
   destroy() {
