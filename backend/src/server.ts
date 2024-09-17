@@ -1,9 +1,10 @@
 import express from "express";
 import http from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import { MongoClient, Db, ObjectId, WithId } from "mongodb";
-import { v4 as uuidv4 } from "uuid";
+import { MongoClient, Db } from "mongodb";
 import path from "path";
+import { Player, PlayerData, PlayerDocument } from "./entities/Player";
+import { Enemy, EnemyData } from "./entities/Enemy";
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +24,7 @@ MongoClient.connect(mongoUrl)
   .then((client) => {
     db = client.db("mmorpg");
     console.log("Connected to MongoDB");
+    spawnEnemies(); // Ensure enemies are spawned after DB connection
   })
   .catch((err) => console.error(err));
 
@@ -35,27 +37,6 @@ const TICK_INTERVAL = 1000 / TICK_RATE;
 const MAX_ENEMIES = 5;
 
 // Game state
-interface Player {
-  playerId: string;
-  position: { x: number; y: number };
-  level: number;
-  exp: number;
-  health: number;
-  socketId: string;
-  direction: string;
-  action: string;
-}
-
-interface Enemy {
-  id: string;
-  position: { x: number; y: number };
-  health: number;
-  alive: boolean;
-  velocity: { x: number; y: number };
-  changeDirection: () => void;
-  move: (deltaTime: number) => void;
-}
-
 const players: { [key: string]: Player } = {};
 const enemies: { [key: string]: Enemy } = {};
 
@@ -63,61 +44,16 @@ const enemies: { [key: string]: Enemy } = {};
 const socketIdToPlayerId: { [key: string]: string } = {};
 const playerIdToSocketId: { [key: string]: string } = {};
 
-// Enemy class with velocity and direction change
-class EnemyImpl implements Enemy {
-  id: string;
-  position: { x: number; y: number };
-  health: number;
-  alive: boolean;
-  velocity: { x: number; y: number };
-
-  constructor() {
-    this.id = uuidv4();
-    this.position = { x: Math.random() * 800, y: Math.random() * 600 };
-    this.health = 100;
-    this.alive = true;
-    this.velocity = { x: 0, y: 0 };
-    this.changeDirection();
-  }
-
-  changeDirection() {
-    if (!this.alive) return;
-
-    const speed = 50; // Adjust speed as needed
-    const angle = Math.random() * 2 * Math.PI;
-    this.velocity.x = Math.cos(angle) * speed;
-    this.velocity.y = Math.sin(angle) * speed;
-
-    setTimeout(() => this.changeDirection(), 2000 + Math.random() * 3000); // Change direction every 2-5 seconds
-  }
-
-  move(deltaTime: number) {
-    if (!this.alive) return;
-
-    const deltaSeconds = deltaTime / 1000;
-
-    this.position.x += this.velocity.x * deltaSeconds;
-    this.position.y += this.velocity.y * deltaSeconds;
-
-    if (this.position.x < 0 || this.position.x > 800) this.velocity.x *= -1;
-    if (this.position.y < 0 || this.position.y > 600) this.velocity.y *= -1;
-
-    this.position.x = Math.max(0, Math.min(800, this.position.x));
-    this.position.y = Math.max(0, Math.min(600, this.position.y));
-  }
-}
-
 // Spawn initial enemies
 function spawnEnemies() {
   const aliveEnemies = Object.values(enemies).filter((enemy) => enemy.alive);
   const enemiesToSpawn = MAX_ENEMIES - aliveEnemies.length;
 
   for (let i = 0; i < enemiesToSpawn; i++) {
-    const enemy = new EnemyImpl();
+    const enemy = new Enemy();
     enemies[enemy.id] = enemy;
   }
 }
-spawnEnemies();
 
 // Socket.io connection
 io.on("connection", (socket: Socket) => {
@@ -125,18 +61,20 @@ io.on("connection", (socket: Socket) => {
 
   // Initialize player
   socket.on("init", async (data: { playerId: string }) => {
-    let { playerId } = data;
+    const { playerId } = data;
 
     socketIdToPlayerId[socket.id] = playerId;
     playerIdToSocketId[playerId] = socket.id;
 
-    let playerData = await db
-      .collection<WithId<Player>>("players")
-      .findOne({ playerId: playerId });
-    if (!playerData) {
-      playerData = {
-        _id: new ObjectId(),
-        playerId: playerId,
+    let playerDocument: PlayerDocument | null = await db
+      .collection<PlayerDocument>("players")
+      .findOne({ playerId });
+
+    let playerData: PlayerData;
+
+    if (!playerDocument) {
+      const newPlayerData: PlayerData = {
+        playerId,
         position: { x: 400, y: 300 },
         level: 1,
         exp: 0,
@@ -145,47 +83,59 @@ io.on("connection", (socket: Socket) => {
         direction: "right",
         action: "idle",
       };
-      await db.collection("players").insertOne(playerData);
+      await db.collection<PlayerData>("players").insertOne(newPlayerData);
+      playerData = newPlayerData;
     } else {
-      playerData.socketId = socket.id;
+      // Update socketId in the existing document
       await db
-        .collection("players")
-        .updateOne({ playerId: playerId }, { $set: { socketId: socket.id } });
+        .collection<PlayerDocument>("players")
+        .updateOne({ playerId }, { $set: { socketId: socket.id } });
+      // Extract PlayerData from PlayerDocument
+      const { _id, ...dataWithoutId } = playerDocument;
+      playerData = dataWithoutId;
     }
-    players[playerId] = playerData;
 
-    const aliveEnemies: {
-      [key: string]: {
-        position: { x: number; y: number };
-        health: number;
-        id: string;
-      };
-    } = {};
-    for (const id in enemies) {
-      if (enemies[id].alive) {
-        aliveEnemies[id] = {
-          position: enemies[id].position,
-          health: enemies[id].health,
-          id: enemies[id].id,
+    const player = new Player(playerData);
+    players[playerId] = player;
+
+    // Prepare alive enemies data to send to the client
+    const aliveEnemies: { [key: string]: EnemyData } = {};
+    for (const enemy of Object.values(enemies)) {
+      if (enemy.alive) {
+        aliveEnemies[enemy.id] = {
+          id: enemy.id,
+          position: enemy.position,
+          health: enemy.health,
         };
       }
     }
 
     socket.emit("init", { playerData, players, enemies: aliveEnemies });
+
+    // Notify other clients about the new player
+    socket.broadcast.emit("playerJoined", playerData);
   });
 
-  socket.on("playerInput", (input: any) => {
-    const playerId = socketIdToPlayerId[socket.id];
-    if (playerId) {
-      // multiple player inputs can come in, so remember if its an attack
-      // this is not super elegant, may be a better way to rework this
-      const prev = latestInputs[playerId];
-      latestInputs[playerId] = input;
-      if (prev?.action === "attack") {
-        latestInputs[playerId].action = "attack";
+  // Collect player input without processing immediately
+  socket.on(
+    "playerInput",
+    (
+      input: Partial<{
+        left: boolean;
+        right: boolean;
+        up: boolean;
+        down: boolean;
+        direction: string;
+        action: string;
+      }>
+    ) => {
+      const playerId = socketIdToPlayerId[socket.id];
+      if (playerId && players[playerId]) {
+        const player = players[playerId];
+        player.setInput(input);
       }
     }
-  });
+  );
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
@@ -195,7 +145,6 @@ io.on("connection", (socket: Socket) => {
       delete players[playerId];
       delete socketIdToPlayerId[socket.id];
       delete playerIdToSocketId[playerId];
-      delete latestInputs[playerId]; // Remove the player's input on disconnect
       socket.broadcast.emit("playerLeft", playerId);
     }
   });
@@ -208,14 +157,11 @@ io.on("connection", (socket: Socket) => {
 
 let lastUpdateTime = Date.now();
 
-const latestInputs: { [key: string]: any } = {};
-
 function gameLoop() {
   const now = Date.now();
   const deltaTime = now - lastUpdateTime;
   lastUpdateTime = now;
 
-  processInputs();
   updateGameState(deltaTime);
 
   const state = getGameState();
@@ -226,40 +172,17 @@ function gameLoop() {
 
 setInterval(gameLoop, TICK_INTERVAL);
 
-function processInputs() {
-  for (const playerId in latestInputs) {
-    const input = latestInputs[playerId];
-    const player = players[playerId];
-    if (!player) continue;
-
-    const speed = 200 / TICK_RATE;
-    if (input.left) player.position.x -= speed;
-    if (input.right) player.position.x += speed;
-    if (input.up) player.position.y -= speed;
-    if (input.down) player.position.y += speed;
-
-    player.position.x = Math.max(0, Math.min(800, player.position.x));
-    player.position.y = Math.max(0, Math.min(600, player.position.y));
-    player.direction = input.direction;
-    player.action = input.action;
-
-    if (input.action === "attack") {
-      handleAttack(playerId);
-    }
-  }
-  // Clear the latest inputs after processing
-  for (const playerId in latestInputs) {
-    delete latestInputs[playerId];
-  }
-}
-
 function updateGameState(deltaTime: number) {
-  for (const id in enemies) {
-    const enemy = enemies[id];
+  const speed = 200 / TICK_RATE;
+
+  for (const playerId in players) {
+    const player = players[playerId];
+    player.processInput(speed);
+  }
+
+  for (const enemy of Object.values(enemies)) {
     if (enemy.alive) {
       enemy.move(deltaTime);
-    } else {
-      delete enemies[id];
     }
   }
 }
@@ -270,8 +193,8 @@ function handleAttack(playerId: string) {
 
   let closestEnemy: Enemy | null = null;
   let minDistance = Infinity;
-  for (const id in enemies) {
-    const enemy = enemies[id];
+
+  for (const enemy of Object.values(enemies)) {
     if (!enemy.alive) continue;
     const distance = getDistance(player.position, enemy.position);
     if (distance < minDistance && distance < 50) {
@@ -281,20 +204,18 @@ function handleAttack(playerId: string) {
   }
 
   if (closestEnemy) {
-    closestEnemy.health -= 10;
-    if (closestEnemy.health <= 0) {
-      closestEnemy.alive = false;
-      player.exp += 50;
-      if (player.exp >= player.level * 100) {
-        player.exp = 0;
-        player.level += 1;
+    const isDead = closestEnemy.takeDamage(10);
+    if (isDead) {
+      const leveledUp = player.gainExp(50);
+      if (leveledUp) {
         const socketId = playerIdToSocketId[playerId];
         if (socketId) {
           io.to(socketId).emit("levelUp", player.level);
         }
       }
-      db.collection("players").updateOne(
-        { playerId: playerId },
+      // Update player data in the database
+      db.collection<PlayerData>("players").updateOne(
+        { playerId },
         { $set: { exp: player.exp, level: player.level } }
       );
     }
@@ -302,42 +223,28 @@ function handleAttack(playerId: string) {
 }
 
 function getGameState() {
-  const simplifiedPlayers: {
-    [key: string]: {
-      playerId: string;
-      position: { x: number; y: number };
-      level: number;
-      exp: number;
-      direction: string;
-      action: string;
-    };
-  } = {};
+  const simplifiedPlayers: { [key: string]: PlayerData } = {};
   for (const playerId in players) {
     const player = players[playerId];
     simplifiedPlayers[playerId] = {
-      playerId: playerId,
+      playerId: player.playerId,
       position: player.position,
       level: player.level,
       exp: player.exp,
       direction: player.direction,
       action: player.action,
+      health: player.health,
+      socketId: player.socketId,
     };
   }
 
-  const simplifiedEnemies: {
-    [key: string]: {
-      position: { x: number; y: number };
-      health: number;
-      id: string;
-    };
-  } = {};
-  for (const id in enemies) {
-    const enemy = enemies[id];
+  const simplifiedEnemies: { [key: string]: EnemyData } = {};
+  for (const enemy of Object.values(enemies)) {
     if (enemy.alive) {
-      simplifiedEnemies[id] = {
+      simplifiedEnemies[enemy.id] = {
+        id: enemy.id,
         position: enemy.position,
         health: enemy.health,
-        id: enemy.id,
       };
     }
   }
