@@ -66,6 +66,10 @@ export class Player {
     }
   }
 
+  isAttacking(): boolean {
+    return this.currentInput.action === "attack";
+  }
+
   // Process the stored input
   processInput(speed: number): void {
     const input = this.currentInput;

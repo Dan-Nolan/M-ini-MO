@@ -177,6 +177,9 @@ function updateGameState(deltaTime: number) {
 
   for (const playerId in players) {
     const player = players[playerId];
+    if (player.isAttacking()) {
+      handleAttack(playerId);
+    }
     player.processInput(speed);
   }
 
