@@ -272,31 +272,85 @@ export class Player {
 }
 
 export class LocalPlayer extends Player {
-  public expBar: Phaser.GameObjects.Rectangle;
+  public expBarBackground: Phaser.GameObjects.Rectangle;
+  public expBarFill: Phaser.GameObjects.Rectangle;
+  public expLabel: Phaser.GameObjects.Text;
   public levelText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, socket: Socket, playerData: PlayerData) {
     super(scene, socket, playerData, true);
 
-    this.levelText = this.scene.add.text(10, 10, `Level: ${this.level}`, {
-      fontSize: "16px",
-      color: "#fff",
-    });
+    // Initialize Level Text
+    this.levelText = this.scene.add
+      .text(10, 35, `Level: ${this.level}`, {
+        fontSize: "16px",
+        color: "#fff",
+      })
+      .setOrigin(0, 0.5); // Align to left center
 
-    this.expBar = this.scene.add.rectangle(400, 580, 200, 20, 0x00ff00);
-    this.updateExpBar(this.exp, this.level);
+    const padding = 20; // Space between levelText and EXP bar
+    const levelTextWidth = this.levelText.width;
+
+    // EXP Bar Background with white border
+    this.expBarBackground = this.scene.add
+      .rectangle(
+        10 + levelTextWidth + padding, // x position
+        this.levelText.y,
+        204, // Width (200 + 2px border on each side)
+        14, // Height reduced from 20 to 14
+        0x808080 // Grey background
+      )
+      .setOrigin(0, 0.5);
+    this.expBarBackground.setStrokeStyle(1, 0xaaaaaa); // White border
+
+    // EXP Bar Fill (Green)
+    this.expBarFill = this.scene.add
+      .rectangle(
+        this.expBarBackground.x + 2, // Starting at the left edge with 2px padding
+        this.expBarBackground.y,
+        (200 * this.calculateExpPercentage()) / 100,
+        10, // Height reduced from 20 to 10
+        0x00ff00 // Green fill
+      )
+      .setOrigin(0, 0.5); // Align to the left
+
+    // EXP Label
+    this.expLabel = this.scene.add
+      .text(
+        this.expBarBackground.x + this.expBarBackground.width / 2,
+        this.expBarBackground.y - 20, // Positioned above the EXP bar
+        `EXP (${this.calculateExpPercentage()}%)`,
+        {
+          fontSize: "14px",
+          color: "#ffffff",
+          fontStyle: "bold",
+        }
+      )
+      .setOrigin(0.5);
+  }
+
+  private calculateExpPercentage(): number {
+    return Math.min(Math.floor((this.exp / (this.level * 100)) * 100), 100);
   }
 
   updateExpBar(exp: number, level: number): void {
     super.updateExpBar(exp, level);
-    const expPercentage = (exp / (level * 100)) * 200; // Bar width scales with EXP if (this.expBar && this.levelText) {
-    this.expBar.width = expPercentage;
-    this.expBar.x = 400 - (200 - this.expBar.width) / 2; // Adjust position
+
+    // Update Level Text
     this.levelText.setText(`Level: ${level}`);
+
+    // Update EXP Fill Width
+    const expPercentage = this.calculateExpPercentage();
+    this.expBarFill.width = 200 * (expPercentage / 100);
+
+    // Update EXP Label
+    this.expLabel.setText(`EXP (${expPercentage}%)`);
   }
 
   destroy() {
-    if (this.expBar) this.expBar.destroy();
+    if (this.expBarBackground) this.expBarBackground.destroy();
+    if (this.expBarFill) this.expBarFill.destroy();
+    if (this.expLabel) this.expLabel.destroy();
     if (this.levelText) this.levelText.destroy();
     super.destroy();
   }
