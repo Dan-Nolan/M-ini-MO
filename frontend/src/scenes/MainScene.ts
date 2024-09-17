@@ -249,7 +249,7 @@ export class MainScene extends Phaser.Scene {
 
     for (const id in this.enemies) {
       if (!state.enemies[id]) {
-        this.enemies[id].destroy();
+        this.enemies[id].die();
         delete this.enemies[id];
       }
     }

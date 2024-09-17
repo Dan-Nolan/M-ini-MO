@@ -112,6 +112,11 @@ export class Enemy {
         this.sprite.setFlipX(false);
       }
     }
+    if (action === "confused") {
+      this.sprite.setTint(0xff3333);
+    } else {
+      this.sprite.clearTint();
+    }
     this.direction = direction;
     const animKey = `enemy_${action}_${direction}`;
     if (this.sprite.anims.currentAnim?.key !== animKey) {
@@ -119,8 +124,12 @@ export class Enemy {
     }
   }
 
-  destroy() {
-    this.sprite.destroy();
+  die() {
     this.healthBar.destroy();
+    this.sprite.clearTint();
+    this.sprite.play("enemy_dying");
+    this.sprite.once("animationcomplete", () => {
+      this.sprite.destroy();
+    });
   }
 }

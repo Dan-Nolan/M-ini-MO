@@ -10,7 +10,7 @@ export interface EnemyData {
   action: string;
 }
 
-type ActionType = "hop" | "longJump" | "idle" | "die";
+type ActionType = "hop" | "longJump" | "idle" | "confused";
 
 export class Enemy {
   id: string;
@@ -43,7 +43,7 @@ export class Enemy {
   constructor() {
     this.id = uuidv4();
     this.position = { x: Math.random() * 800, y: Math.random() * 600 };
-    this.health = 100;
+    this.health = 30;
     this.alive = true;
     this.velocity = { x: 0, y: 0 };
     this.direction = "down";
@@ -77,10 +77,11 @@ export class Enemy {
     this.health -= amount;
     if (this.health <= 0) {
       this.alive = false;
-      this.action = "die";
-      this.velocity = { x: 0, y: 0 };
-      return true; // Indicates the enemy is dead
+      return true;
     }
+    this.velocity = { x: 0, y: 0 };
+    this.action = "confused";
+    this.actionTimer = this.PAUSE_DURATION;
     return false;
   }
 
