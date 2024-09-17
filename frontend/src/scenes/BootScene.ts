@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { Player } from "../entities/Player";
+import { Enemy } from "../entities/Enemy";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -8,14 +9,18 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.spritesheet("player", "assets/images/player.png", {
-      frameWidth: 48, // Updated frame width
-      frameHeight: 48, // Updated frame height
+      frameWidth: 48,
+      frameHeight: 48,
     });
-    // Load other assets here
+    this.load.spritesheet("slime", "assets/images/slime.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
   }
 
   create() {
     Player.createAnimations(this);
+    Enemy.createAnimations(this);
     this.scene.start("MainScene");
   }
 }

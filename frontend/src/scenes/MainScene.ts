@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { io, Socket } from "socket.io-client";
 import { Player } from "../entities/Player";
+import { Enemy } from "../entities/Enemy";
 
 interface PlayerData {
   playerId: string;
@@ -21,15 +22,7 @@ export class MainScene extends Phaser.Scene {
   private playerId: string;
   private player!: Player;
   private players: { [key: string]: Player } = {};
-  private enemies: {
-    [key: string]: {
-      sprite: Phaser.GameObjects.Triangle;
-      healthBar: Phaser.GameObjects.Rectangle;
-      maxHealth: number;
-      prevPosition: { x: number; y: number };
-      targetPosition: { x: number; y: number };
-    };
-  } = {};
+  private enemies: { [key: string]: Enemy } = {};
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private chatWindow!: HTMLDivElement;
   private chatInput!: HTMLInputElement;
@@ -40,16 +33,9 @@ export class MainScene extends Phaser.Scene {
     this.playerId = localStorage.getItem("playerId") || this.generateUUID();
     localStorage.setItem("playerId", this.playerId);
 
-    // Initialize the socket without auto-connecting
     this.socket = io("http://localhost:3000", {
       autoConnect: false,
     });
-
-    // Setup all socket event listeners
-    this.setupSocketEvents();
-
-    // Manually connect after setting up listeners
-    this.socket.connect();
   }
 
   preload() {}
@@ -71,6 +57,9 @@ export class MainScene extends Phaser.Scene {
         }
       }
     });
+
+    this.setupSocketEvents();
+    this.socket.connect();
   }
 
   update(_time: number, _delta: number) {
@@ -122,7 +111,10 @@ export class MainScene extends Phaser.Scene {
       }
     }
 
-    this.interpolateEnemyPositions();
+    // Update enemies
+    for (const id in this.enemies) {
+      this.enemies[id].interpolate();
+    }
   }
 
   private setupSocketEvents() {
@@ -205,36 +197,13 @@ export class MainScene extends Phaser.Scene {
     this.players[playerData.playerId] = otherPlayer;
   }
 
-  private createEnemy(id: string, enemyData: EnemyData) {
-    const enemy = this.add.triangle(
-      enemyData.position.x,
-      enemyData.position.y,
-      0,
-      0,
-      20,
-      40,
-      40,
-      0,
-      0xff00ff
-    );
-    (enemy as any).enemyId = id;
-
-    const healthBar = this.add.rectangle(
-      enemy.x,
-      enemy.y - 30,
-      40,
-      5,
-      0x00ff00
-    );
-    (healthBar as any).maxWidth = 40;
-
-    this.enemies[id] = {
-      sprite: enemy,
-      healthBar: healthBar,
-      maxHealth: enemyData.health,
-      prevPosition: { x: enemyData.position.x, y: enemyData.position.y },
-      targetPosition: { x: enemyData.position.x, y: enemyData.position.y },
-    };
+  private createEnemy(enemyData: {
+    id: string;
+    position: { x: number; y: number };
+    health: number;
+  }) {
+    const enemy = new Enemy(this, enemyData);
+    this.enemies[enemyData.id] = enemy;
   }
 
   private updateGameState(state: {
@@ -270,47 +239,18 @@ export class MainScene extends Phaser.Scene {
     for (const id in state.enemies) {
       const serverEnemy = state.enemies[id];
       if (this.enemies[id]) {
-        const enemyObj = this.enemies[id];
-        enemyObj.targetPosition.x = serverEnemy.position.x;
-        enemyObj.targetPosition.y = serverEnemy.position.y;
-
-        const healthPercentage = serverEnemy.health / enemyObj.maxHealth;
-        enemyObj.healthBar.width =
-          healthPercentage * (enemyObj.healthBar as any).maxWidth;
-
-        if (healthPercentage > 0.5) {
-          enemyObj.healthBar.fillColor = 0x00ff00;
-        } else if (healthPercentage > 0.2) {
-          enemyObj.healthBar.fillColor = 0xffff00;
-        } else {
-          enemyObj.healthBar.fillColor = 0xff0000;
-        }
+        this.enemies[id].updatePosition(serverEnemy.position);
+        this.enemies[id].updateHealth(serverEnemy.health);
       } else {
-        this.createEnemy(id, serverEnemy);
+        this.createEnemy({ id, ...serverEnemy });
       }
     }
 
     for (const id in this.enemies) {
       if (!state.enemies[id]) {
-        this.enemies[id].sprite.destroy();
-        this.enemies[id].healthBar.destroy();
+        this.enemies[id].destroy();
         delete this.enemies[id];
       }
-    }
-  }
-
-  private interpolateEnemyPositions() {
-    for (const id in this.enemies) {
-      const enemyObj = this.enemies[id];
-      const sprite = enemyObj.sprite;
-      const healthBar = enemyObj.healthBar;
-
-      const t = 0.1;
-      sprite.x = Phaser.Math.Linear(sprite.x, enemyObj.targetPosition.x, t);
-      sprite.y = Phaser.Math.Linear(sprite.y, enemyObj.targetPosition.y, t);
-
-      healthBar.x = sprite.x;
-      healthBar.y = sprite.y - 30;
     }
   }
 

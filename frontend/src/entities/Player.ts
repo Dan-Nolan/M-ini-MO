@@ -215,6 +215,13 @@ export class Player {
 
   updateDirection(direction: string) {
     if (direction) {
+      if (direction !== this.currentDirection) {
+        if (direction === "left") {
+          this.sprite.setFlipX(true);
+        } else {
+          this.sprite.setFlipX(false);
+        }
+      }
       this.currentDirection = direction;
     }
   }
@@ -224,16 +231,7 @@ export class Player {
   }
 
   playAnimation(action: string, direction: string = this.currentDirection) {
-    if (this.isAttacking) return; // Prevent interruptions during attack
-
-    if (this.currentDirection !== direction) {
-      this.currentDirection = direction;
-      if (direction === "left") {
-        this.sprite.setFlipX(true);
-      } else {
-        this.sprite.setFlipX(false);
-      }
-    }
+    if (this.isAttacking) return;
 
     let animationKey = "";
 

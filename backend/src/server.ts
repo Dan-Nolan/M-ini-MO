@@ -177,7 +177,13 @@ io.on("connection", (socket: Socket) => {
   socket.on("playerInput", (input: any) => {
     const playerId = socketIdToPlayerId[socket.id];
     if (playerId) {
-      latestInputs[playerId] = input; // Store the latest input for each player
+      // multiple player inputs can come in, so remember if its an attack
+      // this is not super elegant, may be a better way to rework this
+      const prev = latestInputs[playerId];
+      latestInputs[playerId] = input;
+      if (prev?.action === "attack") {
+        latestInputs[playerId].action = "attack";
+      }
     }
   });
 
@@ -237,7 +243,7 @@ function processInputs() {
     player.direction = input.direction;
     player.action = input.action;
 
-    if (input.attack) {
+    if (input.action === "attack") {
       handleAttack(playerId);
     }
   }
