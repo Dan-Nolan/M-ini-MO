@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { io, Socket } from "socket.io-client";
-import { Player } from "../entities/Player";
+import { LocalPlayer, Player } from "../entities/Player";
 import { Enemy } from "../entities/Enemy";
 
 interface PlayerData {
@@ -189,7 +189,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createPlayer(playerData: PlayerData) {
-    this.player = new Player(this, this.socket, playerData, true);
+    this.player = new LocalPlayer(this, this.socket, playerData);
     this.players[this.playerId] = this.player;
   }
 
