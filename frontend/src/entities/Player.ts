@@ -14,12 +14,12 @@ export class Player {
   protected scene: Phaser.Scene;
   protected socket: Socket;
   protected playerId: string;
-  protected sprite: Phaser.GameObjects.Sprite;
   protected label: Phaser.GameObjects.Text;
   protected exp: number;
   protected level: number;
   protected isMoving: boolean = false;
   protected isAttacking: boolean = false;
+  public sprite: Phaser.GameObjects.Sprite;
   public currentDirection: string = "right";
   public currentAction: string = "idle";
   public isLocal: boolean;
@@ -272,6 +272,7 @@ export class Player {
 }
 
 export class LocalPlayer extends Player {
+  public uiContainer: Phaser.GameObjects.Container;
   public expBarBackground: Phaser.GameObjects.Rectangle;
   public expBarFill: Phaser.GameObjects.Rectangle;
   public expLabel: Phaser.GameObjects.Text;
@@ -280,53 +281,60 @@ export class LocalPlayer extends Player {
   constructor(scene: Phaser.Scene, socket: Socket, playerData: PlayerData) {
     super(scene, socket, playerData, true);
 
+    // Create a container for UI elements
+    this.uiContainer = this.scene.add.container(100, 80).setScrollFactor(0);
+
     // Initialize Level Text
     this.levelText = this.scene.add
-      .text(10, 35, `Level: ${this.level}`, {
-        fontSize: "16px",
-        color: "#fff",
+      .text(0, 0, `Level: ${this.level}`, {
+        fontSize: "12px",
+        color: "#ffffff",
+        backgroundColor: "#000000",
+        padding: { x: 5, y: 5 },
       })
-      .setOrigin(0, 0.5); // Align to left center
+      .setOrigin(0, 0);
 
-    const padding = 20; // Space between levelText and EXP bar
+    this.uiContainer.add(this.levelText);
+
+    const padding = 10;
     const levelTextWidth = this.levelText.width;
 
-    // EXP Bar Background with white border
+    // EXP Bar Background
     this.expBarBackground = this.scene.add
-      .rectangle(
-        10 + levelTextWidth + padding, // x position
-        this.levelText.y,
-        204, // Width (200 + 2px border on each side)
-        14, // Height reduced from 20 to 14
-        0x808080 // Grey background
-      )
-      .setOrigin(0, 0.5);
-    this.expBarBackground.setStrokeStyle(1, 0xaaaaaa); // White border
+      .rectangle(levelTextWidth + padding, 4, 200, 12, 0x808080)
+      .setOrigin(0, 0)
+      .setStrokeStyle(1, 0xffffff);
+    this.uiContainer.add(this.expBarBackground);
 
-    // EXP Bar Fill (Green)
+    // EXP Bar Fill
     this.expBarFill = this.scene.add
       .rectangle(
-        this.expBarBackground.x + 2, // Starting at the left edge with 2px padding
-        this.expBarBackground.y,
-        (200 * this.calculateExpPercentage()) / 100,
-        10, // Height reduced from 20 to 10
-        0x00ff00 // Green fill
+        levelTextWidth + padding + 2,
+        6,
+        (196 * this.calculateExpPercentage()) / 100,
+        8,
+        0x00ff00
       )
-      .setOrigin(0, 0.5); // Align to the left
+      .setOrigin(0, 0);
+    this.uiContainer.add(this.expBarFill);
 
     // EXP Label
     this.expLabel = this.scene.add
       .text(
-        this.expBarBackground.x + this.expBarBackground.width / 2,
-        this.expBarBackground.y - 20, // Positioned above the EXP bar
-        `EXP (${this.calculateExpPercentage()}%)`,
+        levelTextWidth + padding + 100,
+        22,
+        `${this.exp}/${this.level * 100} (${this.calculateExpPercentage()}%)`,
         {
-          fontSize: "14px",
+          fontSize: "10px",
           color: "#ffffff",
           fontStyle: "bold",
+          backgroundColor: "#000000",
+          padding: { x: 5, y: 0 },
         }
       )
-      .setOrigin(0.5);
+      .setOrigin(0.5, 0)
+      .setScrollFactor(0);
+    this.uiContainer.add(this.expLabel);
   }
 
   private calculateExpPercentage(): number {
@@ -341,17 +349,16 @@ export class LocalPlayer extends Player {
 
     // Update EXP Fill Width
     const expPercentage = this.calculateExpPercentage();
-    this.expBarFill.width = 200 * (expPercentage / 100);
+    this.expBarFill.width = 196 * (expPercentage / 100);
 
     // Update EXP Label
-    this.expLabel.setText(`EXP (${expPercentage}%)`);
+    this.expLabel.setText(
+      `${this.exp}/${this.level * 100} (${this.calculateExpPercentage()}%)`
+    );
   }
 
   destroy() {
-    if (this.expBarBackground) this.expBarBackground.destroy();
-    if (this.expBarFill) this.expBarFill.destroy();
-    if (this.expLabel) this.expLabel.destroy();
-    if (this.levelText) this.levelText.destroy();
+    this.uiContainer.destroy();
     super.destroy();
   }
 }

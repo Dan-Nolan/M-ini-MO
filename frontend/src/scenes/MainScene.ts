@@ -26,6 +26,8 @@ interface GameState {
 }
 
 export class MainScene extends Phaser.Scene {
+  private worldWidth: number = 2000;
+  private worldHeight: number = 2000;
   private socket: Socket;
   private playerId: string;
   private player!: Player;
@@ -35,6 +37,7 @@ export class MainScene extends Phaser.Scene {
   private chatWindow!: HTMLDivElement;
   private chatInput!: HTMLInputElement;
   private currentInputs: { [key: string]: boolean } = {};
+  private isCameraTweening: boolean = false;
 
   constructor() {
     super({ key: "MainScene" });
@@ -68,6 +71,8 @@ export class MainScene extends Phaser.Scene {
 
     this.setupSocketEvents();
     this.socket.connect();
+
+    this.cameras.main.setZoom(1.25);
   }
 
   update(_time: number, _delta: number) {
@@ -117,11 +122,58 @@ export class MainScene extends Phaser.Scene {
           action: "idle",
         });
       }
+
+      // Check if camera needs to recenter
+      this.handleCameraMovement();
     }
 
     // Update enemies
     for (const id in this.enemies) {
       this.enemies[id].interpolate();
+    }
+  }
+
+  private handleCameraMovement() {
+    if (!this.player || this.isCameraTweening) return;
+
+    const camera = this.cameras.main;
+    const player = this.player.sprite;
+
+    const deadzone = camera.deadzone;
+    if (!deadzone) return;
+
+    // Calculate deadzone boundaries
+    const deadzoneX = camera.scrollX + (camera.width - deadzone.width) / 2;
+    const deadzoneY = camera.scrollY + (camera.height - deadzone.height) / 2;
+
+    // Check if player is outside the deadzone
+    if (
+      player.x < deadzoneX ||
+      player.x > deadzoneX + deadzone.width ||
+      player.y < deadzoneY ||
+      player.y > deadzoneY + deadzone.height
+    ) {
+      // Start tween to recenter camera on player
+      this.isCameraTweening = true;
+
+      this.tweens.add({
+        targets: camera,
+        scrollX: Phaser.Math.Clamp(
+          player.x - camera.width / 2,
+          0,
+          this.worldWidth - camera.width
+        ),
+        scrollY: Phaser.Math.Clamp(
+          player.y - camera.height / 2,
+          0,
+          this.worldHeight - camera.height
+        ),
+        ease: "Sine.easeInOut",
+        duration: 500, // Duration in milliseconds
+        onComplete: () => {
+          this.isCameraTweening = false;
+        },
+      });
     }
   }
 
@@ -191,6 +243,19 @@ export class MainScene extends Phaser.Scene {
   private createPlayer(playerData: PlayerData) {
     this.player = new LocalPlayer(this, this.socket, playerData);
     this.players[this.playerId] = this.player;
+
+    // Set camera bounds to the size of the game world
+    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+
+    // Define deadzone dimensions
+    const deadzoneWidth = Number(this.game.config.width) / 2.2;
+    const deadzoneHeight = Number(this.game.config.height) / 2.2;
+
+    // Set the deadzone
+    this.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);
+
+    // Initially center the camera on the player
+    this.cameras.main.centerOn(this.player.sprite.x, this.player.sprite.y);
   }
 
   private createOtherPlayer(playerData: PlayerData) {

@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: "http://localhost:5175", // Update with your Vite frontend URL
+    origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["my-custom-header"],
     credentials: true,
@@ -32,7 +32,7 @@ MongoClient.connect(mongoUrl)
 app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 
 // Game constants
-const TICK_RATE = 20; // Server updates 20 times per second
+export const TICK_RATE = 20; // Server updates 20 times per second
 const TICK_INTERVAL = 1000 / TICK_RATE;
 const MAX_ENEMIES = 5;
 
@@ -175,14 +175,12 @@ function gameLoop() {
 setInterval(gameLoop, TICK_INTERVAL);
 
 function updateGameState(deltaTime: number) {
-  const speed = 200 / TICK_RATE;
-
   for (const playerId in players) {
     const player = players[playerId];
     if (player.isAttacking()) {
       handleAttack(playerId);
     }
-    player.processInput(speed);
+    player.processInput();
   }
 
   // Update Enemies Behavior

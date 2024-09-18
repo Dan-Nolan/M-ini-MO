@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { TICK_RATE } from "../server";
 
 export interface PlayerData {
   playerId: string;
@@ -25,6 +26,7 @@ export class Player {
   direction: string;
   action: string;
   isAlive: boolean = true;
+  speed: number = 100;
 
   // Store the latest input from the client
   currentInput: Partial<{
@@ -72,13 +74,13 @@ export class Player {
   }
 
   // Process the stored input
-  processInput(speed: number): void {
+  processInput(): void {
     const input = this.currentInput;
 
-    if (input.left) this.position.x -= speed;
-    if (input.right) this.position.x += speed;
-    if (input.up) this.position.y -= speed;
-    if (input.down) this.position.y += speed;
+    if (input.left) this.position.x -= this.speed / TICK_RATE;
+    if (input.right) this.position.x += this.speed / TICK_RATE;
+    if (input.up) this.position.y -= this.speed / TICK_RATE;
+    if (input.down) this.position.y += this.speed / TICK_RATE;
 
     if (input.direction) {
       this.direction = input.direction;

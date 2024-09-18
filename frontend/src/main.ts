@@ -13,4 +13,4 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, MainScene],
 };
 
-new Phaser.Game(config);
+export const game = new Phaser.Game(config);
