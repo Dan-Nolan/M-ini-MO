@@ -114,6 +114,9 @@ export class Enemy {
     }
     if (action === "confused") {
       this.sprite.setTint(0xff3333);
+    } else if (action === "longJump") {
+      // make them enemy a little more blue
+      this.sprite.setTint(0x3333ff);
     } else {
       this.sprite.clearTint();
     }

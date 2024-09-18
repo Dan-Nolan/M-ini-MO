@@ -72,7 +72,7 @@ export class MainScene extends Phaser.Scene {
     this.setupSocketEvents();
     this.socket.connect();
 
-    this.cameras.main.setZoom(1.25);
+    this.cameras.main.setZoom(1.5);
   }
 
   update(_time: number, _delta: number) {
@@ -158,16 +158,8 @@ export class MainScene extends Phaser.Scene {
 
       this.tweens.add({
         targets: camera,
-        scrollX: Phaser.Math.Clamp(
-          player.x - camera.width / 2,
-          0,
-          this.worldWidth - camera.width
-        ),
-        scrollY: Phaser.Math.Clamp(
-          player.y - camera.height / 2,
-          0,
-          this.worldHeight - camera.height
-        ),
+        scrollX: player.x - camera.width / 2,
+        scrollY: player.y - camera.height / 2,
         ease: "Sine.easeInOut",
         duration: 500, // Duration in milliseconds
         onComplete: () => {

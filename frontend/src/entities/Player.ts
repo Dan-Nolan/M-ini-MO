@@ -37,12 +37,12 @@ export class Player {
     this.level = playerData.level;
     this.isLocal = isLocal;
 
-    this.sprite = this.scene.add.sprite(
-      playerData.position.x,
-      playerData.position.y,
+    this.sprite = this.scene.physics.add.sprite(
+      Math.round(playerData.position.x),
+      Math.round(playerData.position.y),
       "player"
     );
-    this.sprite.setScale(1); // Adjust scale as needed
+    this.sprite.setScale(1);
     this.sprite.play(`idle_right`);
 
     this.label = this.scene.add
@@ -51,7 +51,7 @@ export class Player {
         this.sprite.y - 15,
         `${this.playerId.slice(0, 6)}` + (isLocal ? " (you)" : ""),
         {
-          fontSize: "12px",
+          fontSize: "8px",
           color: "#fff",
         }
       )
@@ -200,10 +200,22 @@ export class Player {
   }
 
   updatePosition(position: { x: number; y: number }) {
-    this.sprite.x = position.x;
-    this.sprite.y = position.y;
-    this.label.x = position.x;
-    this.label.y = position.y - 15;
+    this.sprite.x = Phaser.Math.Interpolation.Linear(
+      [this.sprite.x, position.x],
+      0.9
+    );
+    this.sprite.y = Phaser.Math.Interpolation.Linear(
+      [this.sprite.y, position.y],
+      0.9
+    );
+    this.label.x = Phaser.Math.Interpolation.Linear(
+      [this.label.x, position.x],
+      0.7
+    );
+    this.label.y = Phaser.Math.Interpolation.Linear(
+      [this.label.y, position.y - 15],
+      0.7
+    );
   }
 
   updateExpBar(exp: number, level: number) {
@@ -247,21 +259,30 @@ export class Player {
     }
 
     if (animationKey) {
-      this.sprite.play(animationKey, true);
-    }
+      // Check if the desired animation is already playing
+      if (
+        this.sprite.anims.isPlaying &&
+        this.sprite.anims.currentAnim?.key === animationKey
+      ) {
+        // Desired animation is already playing; do nothing
+        return;
+      }
 
-    if (action === "attack") {
-      this.sprite.once(
-        "animationcomplete",
-        () => {
-          this.isAttacking = false;
-          this.playAnimation(
-            this.isMoving ? "walk" : "idle",
-            this.currentDirection
-          );
-        },
-        this
-      );
+      this.sprite.play(animationKey, true);
+
+      if (action === "attack") {
+        this.sprite.once(
+          "animationcomplete",
+          () => {
+            this.isAttacking = false;
+            this.playAnimation(
+              this.isMoving ? "walk" : "idle",
+              this.currentDirection
+            );
+          },
+          this
+        );
+      }
     }
   }
 
@@ -282,7 +303,7 @@ export class LocalPlayer extends Player {
     super(scene, socket, playerData, true);
 
     // Create a container for UI elements
-    this.uiContainer = this.scene.add.container(100, 80).setScrollFactor(0);
+    this.uiContainer = this.scene.add.container(140, 110).setScrollFactor(0);
 
     // Initialize Level Text
     this.levelText = this.scene.add

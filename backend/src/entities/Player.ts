@@ -26,7 +26,7 @@ export class Player {
   direction: string;
   action: string;
   isAlive: boolean = true;
-  speed: number = 100;
+  speed: number = 60;
 
   // Store the latest input from the client
   currentInput: Partial<{

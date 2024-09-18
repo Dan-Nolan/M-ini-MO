@@ -39,6 +39,7 @@ export class Enemy {
   private readonly LONG_JUMP_DISTANCE = 60;
   private readonly PAUSE_DURATION = 1000;
   private readonly MOVE_DURATION = 1000;
+  private readonly LONG_JUMP_DURATION = 600;
 
   constructor() {
     this.id = uuidv4();
@@ -181,15 +182,21 @@ export class Enemy {
     }
 
     // Set distance based on movement type
-    const distance =
-      movementType === "hop" ? this.HOP_DISTANCE : this.LONG_JUMP_DISTANCE;
-    const speed = distance / (this.MOVE_DURATION / 1000); // distance per second
+    let distance, duration;
+    if (movementType === "hop") {
+      distance = this.HOP_DISTANCE;
+      duration = this.MOVE_DURATION;
+    } else {
+      distance = this.LONG_JUMP_DISTANCE;
+      duration = this.LONG_JUMP_DURATION;
+    }
+    const speed = distance / (duration / 1000); // distance per second
 
     this.velocity.x = Math.cos(angle) * speed;
     this.velocity.y = Math.sin(angle) * speed;
 
     // Set timer for movement duration
-    this.actionTimer = this.MOVE_DURATION;
+    this.actionTimer = duration;
     this.action = movementType;
   }
 
