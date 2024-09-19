@@ -26,8 +26,6 @@ interface GameState {
 }
 
 export class MainScene extends Phaser.Scene {
-  private worldWidth: number = 2000;
-  private worldHeight: number = 2000;
   private socket: Socket;
   private playerId: string;
   private player!: Player;
@@ -144,9 +142,6 @@ export class MainScene extends Phaser.Scene {
   private onResize(gameSize: Phaser.Structs.Size) {
     const { width, height } = gameSize;
 
-    // Update camera bounds if necessary
-    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
-
     // Update deadzone based on new game size
     const deadzoneWidth = width / 2.2;
     const deadzoneHeight = height / 2.2;
@@ -226,10 +221,17 @@ export class MainScene extends Phaser.Scene {
 
     this.socket.on("levelUp", () => {
       const congratsText = this.add
-        .text(400, 300, "Congratulations! Level Up!", {
-          fontSize: "32px",
-          color: "#fff",
-        })
+        .text(
+          Number(this.game.config.width) / 2,
+          Number(this.game.config.height) / 2,
+          "Congratulations! Level Up!",
+          {
+            fontSize: "32px",
+            color: "#fff",
+          }
+        )
+        .setScale(1 / this.cameras.main.zoom)
+        .setScrollFactor(0)
         .setOrigin(0.5);
       this.time.delayedCall(2000, () => {
         congratsText.destroy();
@@ -255,9 +257,6 @@ export class MainScene extends Phaser.Scene {
   private createPlayer(playerData: PlayerData) {
     this.player = new LocalPlayer(this, this.socket, playerData);
     this.players[this.playerId] = this.player;
-
-    // Set camera bounds to the size of the game world
-    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
 
     // Define deadzone dimensions based on current game size
     const { width, height } = this.scale.gameSize;
