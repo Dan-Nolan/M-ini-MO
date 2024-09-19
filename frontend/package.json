@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "phaser": "^3.85.1",
-    "socket.io-client": "^4.7.5"
+    "socket.io-client": "^4.7.5",
+    "tile-extruder": "^2.1.0"
   }
 }

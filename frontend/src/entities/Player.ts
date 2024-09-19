@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { Socket } from "socket.io-client";
+import { UIScene } from "../scenes/UIScene";
 
 interface PlayerData {
   playerId: string;
@@ -51,11 +52,12 @@ export class Player {
         this.sprite.y - 15,
         `${this.playerId.slice(0, 6)}` + (isLocal ? " (you)" : ""),
         {
-          fontSize: "8px",
+          fontSize: "12px",
           color: "#fff",
         }
       )
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setScale(1 / this.scene.cameras.main.zoom);
   }
 
   public static createAnimations(scene: Phaser.Scene) {
@@ -208,14 +210,8 @@ export class Player {
       [this.sprite.y, position.y],
       0.9
     );
-    this.label.x = Phaser.Math.Interpolation.Linear(
-      [this.label.x, position.x],
-      0.7
-    );
-    this.label.y = Phaser.Math.Interpolation.Linear(
-      [this.label.y, position.y - 15],
-      0.7
-    );
+    this.label.x = position.x;
+    this.label.y = position.y - 15;
   }
 
   updateExpBar(exp: number, level: number) {
@@ -293,93 +289,18 @@ export class Player {
 }
 
 export class LocalPlayer extends Player {
-  public uiContainer: Phaser.GameObjects.Container;
-  public expBarBackground: Phaser.GameObjects.Rectangle;
-  public expBarFill: Phaser.GameObjects.Rectangle;
-  public expLabel: Phaser.GameObjects.Text;
-  public levelText: Phaser.GameObjects.Text;
-
   constructor(scene: Phaser.Scene, socket: Socket, playerData: PlayerData) {
     super(scene, socket, playerData, true);
-
-    // Create a container for UI elements
-    this.uiContainer = this.scene.add.container(140, 110).setScrollFactor(0);
-
-    // Initialize Level Text
-    this.levelText = this.scene.add
-      .text(0, 0, `Level: ${this.level}`, {
-        fontSize: "12px",
-        color: "#ffffff",
-        backgroundColor: "#000000",
-        padding: { x: 5, y: 5 },
-      })
-      .setOrigin(0, 0);
-
-    this.uiContainer.add(this.levelText);
-
-    const padding = 10;
-    const levelTextWidth = this.levelText.width;
-
-    // EXP Bar Background
-    this.expBarBackground = this.scene.add
-      .rectangle(levelTextWidth + padding, 4, 200, 12, 0x808080)
-      .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xffffff);
-    this.uiContainer.add(this.expBarBackground);
-
-    // EXP Bar Fill
-    this.expBarFill = this.scene.add
-      .rectangle(
-        levelTextWidth + padding + 2,
-        6,
-        (196 * this.calculateExpPercentage()) / 100,
-        8,
-        0x00ff00
-      )
-      .setOrigin(0, 0);
-    this.uiContainer.add(this.expBarFill);
-
-    // EXP Label
-    this.expLabel = this.scene.add
-      .text(
-        levelTextWidth + padding + 100,
-        22,
-        `${this.exp}/${this.level * 100} (${this.calculateExpPercentage()}%)`,
-        {
-          fontSize: "10px",
-          color: "#ffffff",
-          fontStyle: "bold",
-          backgroundColor: "#000000",
-          padding: { x: 5, y: 0 },
-        }
-      )
-      .setOrigin(0.5, 0)
-      .setScrollFactor(0);
-    this.uiContainer.add(this.expLabel);
-  }
-
-  private calculateExpPercentage(): number {
-    return Math.min(Math.floor((this.exp / (this.level * 100)) * 100), 100);
   }
 
   updateExpBar(exp: number, level: number): void {
     super.updateExpBar(exp, level);
 
-    // Update Level Text
-    this.levelText.setText(`Level: ${level}`);
-
-    // Update EXP Fill Width
-    const expPercentage = this.calculateExpPercentage();
-    this.expBarFill.width = 196 * (expPercentage / 100);
-
-    // Update EXP Label
-    this.expLabel.setText(
-      `${this.exp}/${this.level * 100} (${this.calculateExpPercentage()}%)`
-    );
+    const uiScene = this.scene.scene.get("UIScene") as UIScene;
+    uiScene.updateExpBar(exp, level);
   }
 
   destroy() {
-    this.uiContainer.destroy();
     super.destroy();
   }
 }

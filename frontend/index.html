@@ -4,11 +4,27 @@
   <meta charset="UTF-8">
   <title>MMORPG Demo</title>
   <style>
-    body {
+    html, body {
+      height: 100vh;
+      width: 100vw;
       margin: 0;
+      padding: 0;
       overflow: hidden;
+      box-sizing: border-box;
     }
+
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    #game-container canvas {
+      height:100%;
+    }
+
     #chat-window {
+      display: none;
       position: absolute;
       bottom: 50px;
       left: 10px;
@@ -20,12 +36,19 @@
       color: #fff;
       font-size: 14px;
     }
+
     #chat-input {
+      display: none;
       position: absolute;
       bottom: 10px;
       left: 10px;
       width: 300px;
       padding: 5px;
+    }
+
+    /* Ensure the Phaser canvas fills the container */
+    #game-container canvas {
+      display: block;
     }
   </style>
 </head>

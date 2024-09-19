@@ -11,6 +11,11 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet("player", "assets/images/player.png", {
       frameWidth: 48,
       frameHeight: 48,
+      // used tile extruder to avoid pixel bleeding
+      // https://www.html5gamedevs.com/topic/38809-sprite-is-not-rendered-correctly-extra-lines-on-the-edge/?do=findComment&comment=221678
+      // adds a margin and spacing post transformation
+      margin: 1,
+      spacing: 2,
     });
     this.load.spritesheet("slime", "assets/images/slime.png", {
       frameWidth: 32,

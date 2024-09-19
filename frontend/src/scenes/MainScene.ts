@@ -52,6 +52,7 @@ export class MainScene extends Phaser.Scene {
   preload() {}
 
   create() {
+    this.scene.launch("UIScene");
     this.chatWindow = document.getElementById("chat-window") as HTMLDivElement;
     this.chatInput = document.getElementById("chat-input") as HTMLInputElement;
 
@@ -72,7 +73,10 @@ export class MainScene extends Phaser.Scene {
     this.setupSocketEvents();
     this.socket.connect();
 
-    this.cameras.main.setZoom(1.5);
+    this.cameras.main.setZoom(1.4);
+
+    // Setup resize listener
+    this.setupResizeListener();
   }
 
   update(_time: number, _delta: number) {
@@ -131,6 +135,22 @@ export class MainScene extends Phaser.Scene {
     for (const id in this.enemies) {
       this.enemies[id].interpolate();
     }
+  }
+
+  private setupResizeListener() {
+    this.scale.on("resize", this.onResize, this);
+  }
+
+  private onResize(gameSize: Phaser.Structs.Size) {
+    const { width, height } = gameSize;
+
+    // Update camera bounds if necessary
+    this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+
+    // Update deadzone based on new game size
+    const deadzoneWidth = width / 2.2;
+    const deadzoneHeight = height / 2.2;
+    this.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);
   }
 
   private handleCameraMovement() {
@@ -239,9 +259,10 @@ export class MainScene extends Phaser.Scene {
     // Set camera bounds to the size of the game world
     this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
 
-    // Define deadzone dimensions
-    const deadzoneWidth = Number(this.game.config.width) / 2.2;
-    const deadzoneHeight = Number(this.game.config.height) / 2.2;
+    // Define deadzone dimensions based on current game size
+    const { width, height } = this.scale.gameSize;
+    const deadzoneWidth = width / 2.2;
+    const deadzoneHeight = height / 2.2;
 
     // Set the deadzone
     this.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);
