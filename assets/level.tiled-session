@@ -38,7 +38,11 @@
             "scaleInEditor": 1
         },
         "maps/level.tmx#plains": {
+            "dynamicWrapping": false,
             "scaleInDock": 1
+        },
+        "maps/level.tmx#tilesets": {
+            "dynamicWrapping": true
         },
         "maps/objects.tsx": {
             "scaleInDock": 1,
@@ -55,7 +59,7 @@
     },
     "last.exportedFilePath": "/Users/dannolan/Desktop/repos/tiny-mmo/backend/artifacts/maps",
     "last.externalTilesetPath": "/Users/dannolan/Desktop/repos/tiny-mmo/frontend/public/assets/tilesets",
-    "last.imagePath": "/Users/dannolan/Desktop/repos/tiny-mmo/frontend/public/assets/objects",
+    "last.imagePath": "/Users/dannolan/Desktop/repos/tiny-mmo/frontend/public/assets/tilesets",
     "map.fixedSize": false,
     "map.lastUsedExportFilter": "All Files (*)",
     "map.lastUsedFormat": "tmx",
@@ -72,10 +76,12 @@
         "maps/level.json",
         "plains.tsx"
     ],
+    "tileset.embedInMap": true,
     "tileset.lastUsedFilter": "All Files (*)",
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {
         "height": 16,
         "width": 16
-    }
+    },
+    "tileset.type": 0
 }
