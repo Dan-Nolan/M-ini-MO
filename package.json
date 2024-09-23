@@ -2,17 +2,16 @@
   "name": "mmorpg-game",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "start": "npm run start-backend",
-    "start-backend": "cd backend && npm install && npm run start",
+    "start-backend": "npm run start --workspace backend",
     "build": "npm run build-frontend && npm run build-backend",
-    "build-frontend": "cd frontend && npm install && npm run build",
-    "build-backend": "cd backend && npm install && npm run build",
+    "build-frontend": "npm run build --workspace frontend",
+    "build-backend": "npm run build --workspace backend",
     "heroku-postbuild": "npm run build"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "typescript": "^5.6.2",
-    "vite": "^5.4.1"
   }
 }
