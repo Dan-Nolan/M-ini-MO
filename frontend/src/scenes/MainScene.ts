@@ -45,7 +45,7 @@ export class MainScene extends Phaser.Scene {
     this.playerId = localStorage.getItem("playerId") || this.generateUUID();
     localStorage.setItem("playerId", this.playerId);
 
-    this.socket = io("http://localhost:3000", {
+    this.socket = io("https://mow-demo-639105b7be7e.herokuapp.com/", {
       autoConnect: false,
     });
   }
