@@ -86,11 +86,18 @@ export class Player {
     if (input.up) newPosition.y -= this.speed / TICK_RATE;
     if (input.down) newPosition.y += this.speed / TICK_RATE;
 
+    const spriteSize = 32;
+    const halfSpriteSize = spriteSize / 2;
+    // todo: x collision buffer is a magic number...
+    // can we get more precise here or share it elsewhere?
+    const collisionX = newPosition.x - 2;
+    const collisionY = newPosition.y + halfSpriteSize;
+
     // Check for collisions before updating position
     if (
       !mapLoader.isTileBlocked(
-        Math.floor(newPosition.x / 16),
-        Math.floor(newPosition.y / 16)
+        Math.floor(collisionX / 16),
+        Math.floor(collisionY / 16)
       )
     ) {
       this.position = newPosition; // Update position only if no collision
@@ -103,15 +110,6 @@ export class Player {
     if (input.action) {
       this.action = input.action;
     }
-
-    // Clamp position
-    const spriteSize = 32;
-    const halfSpriteSize = spriteSize / 2;
-    this.position.x = Math.max(0, Math.min(768, this.position.x));
-    this.position.y = Math.max(
-      -halfSpriteSize,
-      Math.min(512 - halfSpriteSize, this.position.y)
-    );
 
     // Reset current input after processing
     this.currentInput = {};
