@@ -38,7 +38,7 @@ export class MainScene extends Phaser.Scene {
   private isCameraTweening: boolean = false;
 
   private map!: Phaser.Tilemaps.Tilemap;
-  private tileset!: Phaser.Tilemaps.Tileset;
+  private tilesets!: Phaser.Tilemaps.Tileset[];
 
   constructor() {
     super({ key: "MainScene" });
@@ -72,9 +72,12 @@ export class MainScene extends Phaser.Scene {
     });
 
     this.map = this.make.tilemap({ key: "map" });
-    this.tileset = this.map.addTilesetImage("plains", "tiles", 16, 16)!;
+    this.tilesets = [
+      this.map.addTilesetImage("plains", "tiles", 16, 16)!,
+      this.map.addTilesetImage("objects", "objects", 16, 16)!,
+    ];
     this.map.layers.forEach((layer) => {
-      this.map.createLayer(layer.name, this.tileset, 0, 0);
+      this.map.createLayer(layer.name, this.tilesets, 0, 0);
     });
 
     this.setupSocketEvents();
