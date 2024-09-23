@@ -1,0 +1,15 @@
+{
+  "name": "mmorpg-game",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm run start-backend",
+    "start-backend": "cd backend && npm install && npm run start",
+    "build": "npm run build-frontend && npm run build-backend",
+    "build-frontend": "cd frontend && npm install && npm run build",
+    "build-backend": "cd backend && npm install && npm run build",
+    "heroku-postbuild": "npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

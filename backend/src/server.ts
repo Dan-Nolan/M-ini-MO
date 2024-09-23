@@ -18,7 +18,7 @@ const io = new SocketIOServer(server, {
   },
 });
 
-const mongoUrl = "mongodb://localhost:27017";
+const mongoUrl = process.env.MONGO_URL || "mongodb://localhost:27017";
 let db: Db;
 
 MongoClient.connect(mongoUrl)
