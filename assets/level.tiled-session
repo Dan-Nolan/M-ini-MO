@@ -1,0 +1,59 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "maps/level.json": {
+            "scale": 0.6701953125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 127.57475083056488,
+                "y": -128.32080200501252
+            }
+        },
+        "maps/level.json#plains": {
+            "scaleInDock": 1
+        },
+        "maps/level.tmx": {
+            "scale": 0.5399,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 75.01389146138172,
+                "y": 9.260974254491657
+            }
+        },
+        "maps/level.tmx#plains": {
+            "scaleInDock": 1
+        },
+        "plains.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "tilesets/plains.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "last.exportedFilePath": "/Users/dannolan/Desktop/repos/tiny-mmo/frontend/public/assets/maps",
+    "last.imagePath": "/Users/dannolan/Desktop/repos/tiny-mmo/frontend/public/assets/tilesets",
+    "map.fixedSize": false,
+    "map.lastUsedExportFilter": "All Files (*)",
+    "map.lastUsedFormat": "tmx",
+    "openFiles": [
+    ],
+    "project": "level.tiled-project",
+    "recentFiles": [
+        "tilesets/plains.tsx",
+        "maps/level.json",
+        "plains.tsx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}

@@ -37,6 +37,9 @@ export class MainScene extends Phaser.Scene {
   private currentInputs: { [key: string]: boolean } = {};
   private isCameraTweening: boolean = false;
 
+  private map!: Phaser.Tilemaps.Tilemap;
+  private tileset!: Phaser.Tilemaps.Tileset;
+
   constructor() {
     super({ key: "MainScene" });
     this.playerId = localStorage.getItem("playerId") || this.generateUUID();
@@ -67,6 +70,10 @@ export class MainScene extends Phaser.Scene {
         }
       }
     });
+
+    this.map = this.make.tilemap({ key: "map" });
+    this.tileset = this.map.addTilesetImage("plains", "tiles", 16, 16)!;
+    this.map.createLayer("Tile Layer 1", this.tileset, 0, 0)!;
 
     this.setupSocketEvents();
     this.socket.connect();

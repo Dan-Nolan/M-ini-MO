@@ -91,8 +91,14 @@ export class Player {
     }
 
     // Clamp position
-    this.position.x = Math.max(0, Math.min(800, this.position.x));
-    this.position.y = Math.max(0, Math.min(600, this.position.y));
+    // TODO: fix this to the map size
+    const spriteSize = 32;
+    const halfSpriteSize = spriteSize / 2;
+    this.position.x = Math.max(0, Math.min(768, this.position.x));
+    this.position.y = Math.max(
+      -halfSpriteSize,
+      Math.min(512 - halfSpriteSize, this.position.y)
+    );
 
     // Reset current input after processing
     this.currentInput = {};
