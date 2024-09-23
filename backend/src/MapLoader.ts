@@ -1,11 +1,5 @@
-// backend/src/MapLoader.ts
-import fs from "fs";
-import path from "path";
-
-interface Tile {
-  id: number;
-  properties: { [key: string]: any };
-}
+import * as fs from "fs";
+import * as path from "path";
 
 interface Tileset {
   firstgid: number;
@@ -16,27 +10,42 @@ interface Tileset {
   tilecount: number;
   tileheight: number;
   tilewidth: number;
-  tiles: Tile[];
+  tiles?: Tile[];
 }
 
-interface Chunk {
-  data: number[];
-  width: number;
-  height: number;
-  x: number;
-  y: number;
+interface Tile {
+  id: number;
+  properties?: { name: string; type: string; value: any }[];
 }
 
 interface Layer {
   name: string;
   type: string;
-  chunks?: Chunk[];
+  data: number[];
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+  visible: boolean;
+  opacity: number;
   properties?: { [key: string]: any };
 }
 
 interface Tilemap {
   layers: Layer[];
   tilesets: Tileset[];
+  width: number;
+  height: number;
+  tilewidth: number;
+  tileheight: number;
+  type: string;
+  version: string;
+  orientation: string;
+  renderorder: string;
+  tiledversion: string;
+  nextlayerid: number;
+  nextobjectid: number;
+  infinite: boolean;
 }
 
 export class MapLoader {
@@ -53,11 +62,11 @@ export class MapLoader {
   private findCollidableTiles(): Set<number> {
     const collidableTiles = new Set<number>();
     for (const tileset of this.map.tilesets) {
-      for (const tile of tileset.tiles) {
+      for (const tile of tileset.tiles || []) {
+        // Handle tilesets without tiles
         if (
           tile.properties?.some(
-            (prop: { name: string; value: any }) =>
-              prop.name === "collideable" && prop.value
+            (prop) => prop.name === "collideable" && prop.value
           )
         ) {
           collidableTiles.add(tile.id + tileset.firstgid);
@@ -69,27 +78,17 @@ export class MapLoader {
 
   isTileBlocked(x: number, y: number): boolean {
     for (const layer of this.map.layers) {
-      if (layer.type === "tilelayer" && layer.chunks) {
-        for (const chunk of layer.chunks) {
-          // Check if the coordinates are within the chunk's bounds
-          if (
-            x >= chunk.x - chunk.width &&
-            x < chunk.x &&
-            y >= chunk.y - chunk.height &&
-            y < chunk.y
-          ) {
-            // translate to the local chunk coordinate space
-            const localX = x - (chunk.x - chunk.width);
-            const localY = y - (chunk.y - chunk.height);
+      if (layer.type !== "tilelayer" || !layer.visible) continue;
 
-            // get the index of the tile in the chunk
-            const index = localY * chunk.width + localX;
-            const tile = chunk.data[index];
-            if (this.collidableTiles.has(tile)) {
-              return true;
-            }
-          }
-        }
+      // Ensure coordinates are within map bounds
+      if (x < 0 || x >= layer.width || y < 0 || y >= layer.height) {
+        return false; // Out of bounds tiles are not blocked
+      }
+
+      const index = y * layer.width + x;
+      const tile = layer.data[index];
+      if (this.collidableTiles.has(tile)) {
+        return true;
       }
     }
     return false;

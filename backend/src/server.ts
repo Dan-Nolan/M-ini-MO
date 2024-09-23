@@ -76,7 +76,7 @@ io.on("connection", (socket: Socket) => {
     if (!playerDocument) {
       const newPlayerData: PlayerData = {
         playerId,
-        position: { x: 400, y: 300 },
+        position: { x: 300, y: 200 },
         level: 1,
         exp: 0,
         health: 100,

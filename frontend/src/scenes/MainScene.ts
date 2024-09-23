@@ -77,13 +77,26 @@ export class MainScene extends Phaser.Scene {
       this.map.addTilesetImage("objects", "objects", 16, 16)!,
     ];
     this.map.layers.forEach((layer) => {
-      this.map.createLayer(layer.name, this.tilesets, 0, 0);
+      const layerObject = this.map.createLayer(
+        layer.name,
+        this.tilesets,
+        0,
+        0
+      )!;
+      if (
+        layer.properties?.find(
+          (prop) =>
+            (prop as { name: string; value: boolean }).name === "foreground"
+        )
+      ) {
+        layerObject.setDepth(2);
+      }
     });
 
     this.setupSocketEvents();
     this.socket.connect();
 
-    this.cameras.main.setZoom(1.4);
+    this.cameras.main.setZoom(2.75);
 
     // Setup resize listener
     this.setupResizeListener();
@@ -155,8 +168,8 @@ export class MainScene extends Phaser.Scene {
     const { width, height } = gameSize;
 
     // Update deadzone based on new game size
-    const deadzoneWidth = width / 2.2;
-    const deadzoneHeight = height / 2.2;
+    const deadzoneWidth = width / 5;
+    const deadzoneHeight = height / 5;
     this.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);
   }
 
@@ -272,8 +285,8 @@ export class MainScene extends Phaser.Scene {
 
     // Define deadzone dimensions based on current game size
     const { width, height } = this.scale.gameSize;
-    const deadzoneWidth = width / 2.2;
-    const deadzoneHeight = height / 2.2;
+    const deadzoneWidth = width / 5;
+    const deadzoneHeight = height / 5;
 
     // Set the deadzone
     this.cameras.main.setDeadzone(deadzoneWidth, deadzoneHeight);

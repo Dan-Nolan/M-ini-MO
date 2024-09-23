@@ -27,14 +27,15 @@
         },
         "maps/level.tmx": {
             "scale": 1,
-            "selectedLayer": 1,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 656.5,
-                "y": 516
+                "x": 579,
+                "y": 433
             }
         },
         "maps/level.tmx#objects": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "maps/level.tmx#plains": {
             "scaleInDock": 1
@@ -65,8 +66,8 @@
     "project": "level.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "maps/objects.tsx",
         "maps/level.tmx",
+        "maps/objects.tsx",
         "tilesets/plains.tsx",
         "maps/level.json",
         "plains.tsx"
