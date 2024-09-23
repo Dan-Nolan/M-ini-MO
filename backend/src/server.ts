@@ -5,6 +5,7 @@ import { MongoClient, Db } from "mongodb";
 import path from "path";
 import { Player, PlayerData, PlayerDocument } from "./entities/Player";
 import { Enemy, EnemyData } from "./entities/Enemy";
+import { MapLoader } from "./MapLoader"; // Import MapLoader
 
 const app = express();
 const server = http.createServer(app);
@@ -157,6 +158,8 @@ io.on("connection", (socket: Socket) => {
   });
 });
 
+const mapLoader = new MapLoader("artifacts/maps/level.json"); // Adjust the path to your map file
+
 let lastUpdateTime = Date.now();
 
 function gameLoop() {
@@ -180,7 +183,7 @@ function updateGameState(deltaTime: number) {
     if (player.isAttacking()) {
       handleAttack(playerId);
     }
-    player.processInput();
+    player.processInput(mapLoader); // Pass mapLoader for collision detection
   }
 
   // Update Enemies Behavior

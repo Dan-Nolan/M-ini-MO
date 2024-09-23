@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { TICK_RATE } from "../server";
+import { MapLoader } from "../MapLoader";
 
 export interface PlayerData {
   playerId: string;
@@ -74,13 +75,26 @@ export class Player {
   }
 
   // Process the stored input
-  processInput(): void {
+  processInput(mapLoader: MapLoader): void {
     const input = this.currentInput;
 
-    if (input.left) this.position.x -= this.speed / TICK_RATE;
-    if (input.right) this.position.x += this.speed / TICK_RATE;
-    if (input.up) this.position.y -= this.speed / TICK_RATE;
-    if (input.down) this.position.y += this.speed / TICK_RATE;
+    // Store potential new position
+    const newPosition = { ...this.position };
+
+    if (input.left) newPosition.x -= this.speed / TICK_RATE;
+    if (input.right) newPosition.x += this.speed / TICK_RATE;
+    if (input.up) newPosition.y -= this.speed / TICK_RATE;
+    if (input.down) newPosition.y += this.speed / TICK_RATE;
+
+    // Check for collisions before updating position
+    if (
+      !mapLoader.isTileBlocked(
+        Math.floor(newPosition.x / 16),
+        Math.floor(newPosition.y / 16)
+      )
+    ) {
+      this.position = newPosition; // Update position only if no collision
+    }
 
     if (input.direction) {
       this.direction = input.direction;
@@ -91,7 +105,6 @@ export class Player {
     }
 
     // Clamp position
-    // TODO: fix this to the map size
     const spriteSize = 32;
     const halfSpriteSize = spriteSize / 2;
     this.position.x = Math.max(0, Math.min(768, this.position.x));

@@ -20,7 +20,6 @@ export class UIScene extends Phaser.Scene {
       .text(0, 0, `Level: 0`, {
         fontSize: "12px",
         color: "#ffffff",
-        backgroundColor: "#000000",
         padding: { x: 5, y: 5 },
       })
       .setOrigin(0, 0);
@@ -49,7 +48,6 @@ export class UIScene extends Phaser.Scene {
         fontSize: "10px",
         color: "#ffffff",
         fontStyle: "bold",
-        backgroundColor: "#000000",
         padding: { x: 5, y: 0 },
       })
       .setOrigin(0.5, 0)

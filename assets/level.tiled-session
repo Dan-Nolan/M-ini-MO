@@ -38,7 +38,7 @@
             "scaleInEditor": 1
         }
     },
-    "last.exportedFilePath": "/Users/dannolan/Desktop/repos/tiny-mmo/frontend/public/assets/maps",
+    "last.exportedFilePath": "/Users/dannolan/Desktop/repos/tiny-mmo/backend/artifacts/maps",
     "last.imagePath": "/Users/dannolan/Desktop/repos/tiny-mmo/frontend/public/assets/tilesets",
     "map.fixedSize": false,
     "map.lastUsedExportFilter": "All Files (*)",
@@ -46,6 +46,7 @@
     "openFiles": [
     ],
     "project": "level.tiled-project",
+    "property.type": "bool",
     "recentFiles": [
         "tilesets/plains.tsx",
         "maps/level.json",

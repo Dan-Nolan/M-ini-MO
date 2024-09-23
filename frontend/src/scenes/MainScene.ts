@@ -73,7 +73,9 @@ export class MainScene extends Phaser.Scene {
 
     this.map = this.make.tilemap({ key: "map" });
     this.tileset = this.map.addTilesetImage("plains", "tiles", 16, 16)!;
-    this.map.createLayer("Tile Layer 1", this.tileset, 0, 0)!;
+    this.map.layers.forEach((layer) => {
+      this.map.createLayer(layer.name, this.tileset, 0, 0);
+    });
 
     this.setupSocketEvents();
     this.socket.connect();
