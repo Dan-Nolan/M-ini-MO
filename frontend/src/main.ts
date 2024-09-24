@@ -15,6 +15,7 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   roundPixels: true,
   antialias: true,
+  pixelArt: true,
   physics: {
     default: "arcade",
   },

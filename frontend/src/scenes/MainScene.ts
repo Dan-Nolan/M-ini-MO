@@ -40,14 +40,28 @@ export class MainScene extends Phaser.Scene {
   private map!: Phaser.Tilemaps.Tilemap;
   private tilesets!: Phaser.Tilemaps.Tileset[];
 
+  private tilesetAnimations: {
+    [key: number]: { frames: number[]; durations: number[] };
+  } = {};
+  private animatedTiles: {
+    layer: Phaser.Tilemaps.TilemapLayer;
+    tile: Phaser.Tilemaps.Tile;
+    animation: { frames: number[]; durations: number[] };
+    currentFrame: number;
+    timeElapsed: number;
+  }[] = [];
+
   constructor() {
     super({ key: "MainScene" });
     this.playerId = localStorage.getItem("playerId") || this.generateUUID();
     localStorage.setItem("playerId", this.playerId);
 
-    this.socket = io("https://mow-demo-639105b7be7e.herokuapp.com/", {
-      autoConnect: false,
-    });
+    this.socket = io(
+      import.meta.env.VITE_BACKEND_URL || "http://localhost:3000",
+      {
+        autoConnect: false,
+      }
+    );
   }
 
   preload() {}
@@ -78,22 +92,25 @@ export class MainScene extends Phaser.Scene {
       this.map.addTilesetImage("water-sheet", "water-sheet", 16, 16)!,
       this.map.addTilesetImage("objects", "objects", 16, 16)!,
     ];
-    this.map.layers.forEach((layer) => {
-      const layerObject = this.map.createLayer(
-        layer.name,
-        this.tilesets,
-        0,
-        0
-      )!;
+
+    // Parse and store animations
+    this.parseTilesetAnimations();
+
+    // Create tilemap layers
+    this.map.layers.forEach((layerData) => {
+      const layer = this.map.createLayer(layerData.name, this.tilesets, 0, 0)!;
       if (
-        layer.properties?.find(
-          (prop) =>
-            (prop as { name: string; value: boolean }).name === "foreground"
-        )
+        layerData.properties?.find((prop: any) => prop.name === "foreground")
       ) {
-        layerObject.setDepth(2);
+        layer.setDepth(2);
       }
+
+      // Handle animated tiles
+      // Animated tiles will be set up after all layers are created
     });
+
+    // Setup animated tiles after layers are created
+    this.setupAnimatedTiles();
 
     this.setupSocketEvents();
     this.socket.connect();
@@ -104,7 +121,7 @@ export class MainScene extends Phaser.Scene {
     this.setupResizeListener();
   }
 
-  update(_time: number, _delta: number) {
+  update(time: number, delta: number) {
     if (this.player) {
       let direction = this.player.currentDirection;
       if (this.cursors) {
@@ -160,6 +177,27 @@ export class MainScene extends Phaser.Scene {
     for (const id in this.enemies) {
       this.enemies[id].interpolate();
     }
+
+    // Handle animated tiles
+    this.animatedTiles.forEach((animatedTile) => {
+      animatedTile.timeElapsed += delta;
+
+      const currentDuration =
+        animatedTile.animation.durations[animatedTile.currentFrame];
+      if (animatedTile.timeElapsed >= currentDuration) {
+        animatedTile.timeElapsed -= currentDuration;
+        animatedTile.currentFrame =
+          (animatedTile.currentFrame + 1) %
+          animatedTile.animation.frames.length;
+        animatedTile.tile.index =
+          animatedTile.animation.frames[animatedTile.currentFrame];
+        animatedTile.layer.putTileAt(
+          animatedTile.tile.index,
+          animatedTile.tile.x,
+          animatedTile.tile.y
+        );
+      }
+    });
   }
 
   private setupResizeListener() {
@@ -368,5 +406,44 @@ export class MainScene extends Phaser.Scene {
         return v.toString(16);
       }
     );
+  }
+
+  private parseTilesetAnimations() {
+    (this.map.tilesets as any).forEach((tileset: any) => {
+      for (const tileId in tileset.tileData) {
+        const tile = tileset.tileData[tileId];
+
+        if (tile.animation) {
+          const frames = tile.animation.map(
+            (anim: any) => anim.tileid + tileset.firstgid
+          );
+          const durations = tile.animation.map((anim: any) => anim.duration);
+          this.tilesetAnimations[Number(tileId) + tileset.firstgid] = {
+            frames,
+            durations,
+          };
+        }
+      }
+    });
+  }
+
+  private setupAnimatedTiles() {
+    this.map.layers.forEach((layerData) => {
+      const layer = this.map.getLayer(layerData.name)?.tilemapLayer;
+      if (layer) {
+        layer.forEachTile((tile) => {
+          if (tile && this.tilesetAnimations[tile.index]) {
+            console.log(tile.index);
+            this.animatedTiles.push({
+              layer,
+              tile,
+              animation: this.tilesetAnimations[tile.index],
+              currentFrame: 0,
+              timeElapsed: 0,
+            });
+          }
+        });
+      }
+    });
   }
 }

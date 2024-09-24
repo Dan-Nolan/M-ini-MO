@@ -63,7 +63,6 @@ export class MapLoader {
     const collidableTiles = new Set<number>();
     for (const tileset of this.map.tilesets) {
       for (const tile of tileset.tiles || []) {
-        // Handle tilesets without tiles
         if (
           tile.properties?.some(
             (prop) => prop.name === "collideable" && prop.value
@@ -80,9 +79,8 @@ export class MapLoader {
     for (const layer of this.map.layers) {
       if (layer.type !== "tilelayer" || !layer.visible) continue;
 
-      // Ensure coordinates are within map bounds
       if (x < 0 || x >= layer.width || y < 0 || y >= layer.height) {
-        return false; // Out of bounds tiles are not blocked
+        return true; // Out of bounds tiles are blocked
       }
 
       const index = y * layer.width + x;
