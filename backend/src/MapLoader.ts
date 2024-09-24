@@ -85,7 +85,6 @@ export class MapLoader {
 
       const index = y * layer.width + x;
       const tile = layer.data[index];
-      console.log(layer.name, tile);
       if (this.collidableTiles.has(tile)) {
         return true;
       }
