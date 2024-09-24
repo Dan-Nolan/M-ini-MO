@@ -297,6 +297,7 @@ export class MainScene extends Phaser.Scene {
         )
         .setScale(1 / this.cameras.main.zoom)
         .setScrollFactor(0)
+        .setDepth(5)
         .setOrigin(0.5);
       this.time.delayedCall(2000, () => {
         congratsText.destroy();

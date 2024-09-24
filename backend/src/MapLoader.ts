@@ -77,7 +77,7 @@ export class MapLoader {
 
   isTileBlocked(x: number, y: number): boolean {
     for (const layer of this.map.layers) {
-      if (layer.type !== "tilelayer" || !layer.visible) continue;
+      if (layer.type !== "tilelayer") continue;
 
       if (x < 0 || x >= layer.width || y < 0 || y >= layer.height) {
         return true; // Out of bounds tiles are blocked
@@ -85,6 +85,7 @@ export class MapLoader {
 
       const index = y * layer.width + x;
       const tile = layer.data[index];
+      console.log(layer.name, tile);
       if (this.collidableTiles.has(tile)) {
         return true;
       }
