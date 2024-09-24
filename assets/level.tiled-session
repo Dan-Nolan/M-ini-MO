@@ -34,6 +34,7 @@
             }
         },
         "maps/level.tmx#objects": {
+            "dynamicWrapping": false,
             "scaleInDock": 1,
             "scaleInEditor": 1
         },
@@ -43,6 +44,10 @@
         },
         "maps/level.tmx#tilesets": {
             "dynamicWrapping": true
+        },
+        "maps/level.tmx#water": {
+            "dynamicWrapping": true,
+            "scaleInEditor": 1
         },
         "maps/objects.tsx": {
             "scaleInDock": 1,

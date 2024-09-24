@@ -11,6 +11,7 @@ export class BootScene extends Phaser.Scene {
     this.load.tilemapTiledJSON("map", "assets/maps/level.json");
     this.load.image("tiles", "assets/tilesets/plains.png");
     this.load.image("grass", "assets/tilesets/grass.png");
+    this.load.image("water-sheet", "assets/tilesets/water-sheet.png");
     this.load.image("objects", "assets/objects/objects.png");
 
     this.load.spritesheet("player", "assets/images/player.png", {

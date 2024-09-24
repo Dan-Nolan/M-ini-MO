@@ -11,13 +11,16 @@ interface EnemyData {
 export class Enemy {
   private scene: Phaser.Scene;
   public sprite: Phaser.GameObjects.Sprite;
-  public healthBar: Phaser.GameObjects.Rectangle;
+  public healthBarForeground: Phaser.GameObjects.Rectangle;
+  private healthBarBackground: Phaser.GameObjects.Rectangle;
+  private healthBarBorder: Phaser.GameObjects.Graphics;
   public maxHealth: number;
   public isAlive: boolean = true;
   private targetPosition: { x: number; y: number };
   public currentHealth: number;
   public direction: string;
   public action: string;
+  private hideHealthBarTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor(scene: Phaser.Scene, enemyData: EnemyData) {
     this.scene = scene;
@@ -34,14 +37,40 @@ export class Enemy {
     );
     this.playAnimation(this.action, this.direction);
 
-    this.healthBar = this.scene.add.rectangle(
+    // Create Health Bar Background (Full Health with Low Opacity)
+    this.healthBarBackground = this.scene.add.rectangle(
       this.sprite.x,
-      this.sprite.y - 30,
+      this.sprite.y - 35, // Adjusted Y position for visuals
       40,
-      5,
-      0x00ff00
+      3, // Slimmer height
+      0x000000, // Black color for max health indicator
+      0.2 // Low opacity
     );
-    this.healthBar.setOrigin(0.5, 0.5);
+    this.healthBarBackground.setOrigin(0.5, 0.5);
+    this.healthBarBackground.setVisible(false); // Initially hidden
+
+    // Create Health Bar Foreground (Current Health)
+    this.healthBarForeground = this.scene.add.rectangle(
+      this.sprite.x,
+      this.sprite.y - 35, // Same Y position as background
+      40,
+      3, // Slimmer height
+      0x1b572d, // Initial color (Green)
+      1 // Full opacity
+    );
+    this.healthBarForeground.setOrigin(0.5, 0.5);
+    this.healthBarForeground.setVisible(false); // Initially hidden
+
+    // Create Health Bar Border
+    this.healthBarBorder = this.scene.add.graphics();
+    this.healthBarBorder.lineStyle(1, 0x000000, 1); // Black border with 1px thickness
+    this.healthBarBorder.strokeRect(
+      this.healthBarBackground.x - this.healthBarBackground.width / 2 - 1,
+      this.healthBarBackground.y - this.healthBarBackground.height / 2 - 1,
+      this.healthBarBackground.width + 2,
+      this.healthBarBackground.height + 2
+    );
+    this.healthBarBorder.setVisible(false); // Initially hidden
   }
 
   public static createAnimations(scene: Phaser.Scene) {
@@ -83,24 +112,65 @@ export class Enemy {
   }
 
   updateHealth(health: number) {
+    if (health !== this.currentHealth) {
+      this.showHealthBar();
+    }
     this.currentHealth = health;
     const healthPercentage = this.currentHealth / this.maxHealth;
-    this.healthBar.width = healthPercentage * 40;
+    this.healthBarForeground.width = healthPercentage * 40;
+
+    // Update Health Bar Color Based on Health Percentage
     if (healthPercentage > 0.5) {
-      this.healthBar.setFillStyle(0x00ff00);
+      this.healthBarForeground.setFillStyle(0x00ff00, 1); // Green
     } else if (healthPercentage > 0.2) {
-      this.healthBar.setFillStyle(0xffff00);
+      this.healthBarForeground.setFillStyle(0xffff00, 1); // Yellow
     } else {
-      this.healthBar.setFillStyle(0xff0000);
+      this.healthBarForeground.setFillStyle(0xff0000, 1); // Red
     }
+  }
+
+  private showHealthBar() {
+    this.healthBarBackground.setVisible(true);
+    this.healthBarForeground.setVisible(true);
+    this.healthBarBorder.setVisible(true);
+
+    // If there's an existing timer, remove it
+    if (this.hideHealthBarTimer) {
+      this.hideHealthBarTimer.remove(false);
+    }
+
+    // Start a new timer to hide the health bar after 3 seconds
+    this.hideHealthBarTimer = this.scene.time.delayedCall(
+      3000,
+      () => {
+        this.healthBarBackground.setVisible(false);
+        this.healthBarForeground.setVisible(false);
+        this.healthBarBorder.setVisible(false);
+        this.hideHealthBarTimer = null;
+      },
+      [],
+      this
+    );
   }
 
   interpolate() {
     const t = 0.1;
     this.sprite.x = Phaser.Math.Linear(this.sprite.x, this.targetPosition.x, t);
     this.sprite.y = Phaser.Math.Linear(this.sprite.y, this.targetPosition.y, t);
-    this.healthBar.x = this.sprite.x;
-    this.healthBar.y = this.sprite.y - 30;
+    this.healthBarBackground.x = this.sprite.x;
+    this.healthBarBackground.y = this.sprite.y - 35;
+    this.healthBarForeground.x = this.sprite.x;
+    this.healthBarForeground.y = this.sprite.y - 35;
+
+    // Update Border Position
+    this.healthBarBorder.clear();
+    this.healthBarBorder.lineStyle(1, 0x000000, 1);
+    this.healthBarBorder.strokeRect(
+      this.healthBarBackground.x - this.healthBarBackground.width / 2 - 1,
+      this.healthBarBackground.y - this.healthBarBackground.height / 2 - 1,
+      this.healthBarBackground.width + 2,
+      this.healthBarBackground.height + 2
+    );
   }
 
   playAnimation(action: string, direction: string) {
@@ -115,7 +185,7 @@ export class Enemy {
     if (action === "confused") {
       this.sprite.setTint(0xff3333);
     } else if (action === "longJump") {
-      // make them enemy a little more blue
+      // make the enemy a little more blue
       this.sprite.setTint(0x3333ff);
     } else {
       this.sprite.clearTint();
@@ -128,7 +198,9 @@ export class Enemy {
   }
 
   die() {
-    this.healthBar.destroy();
+    this.healthBarForeground.destroy();
+    this.healthBarBackground.destroy();
+    this.healthBarBorder.destroy();
     this.sprite.clearTint();
     this.sprite.play("enemy_dying");
     this.sprite.once("animationcomplete", () => {
