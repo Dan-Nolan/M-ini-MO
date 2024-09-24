@@ -121,7 +121,7 @@ export class MainScene extends Phaser.Scene {
     this.setupResizeListener();
   }
 
-  update(time: number, delta: number) {
+  update(_time: number, delta: number) {
     if (this.player) {
       let direction = this.player.currentDirection;
       if (this.cursors) {
